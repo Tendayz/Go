@@ -21,4 +21,7 @@
     <string name="victory_black">Black\'s victory!</string>
     <string name="victory_white">White\'s victory!</string>
     <string name="draw">Draw</string>
+
+    <string name="one_player">1 Player</string>
+    <string name="two_players">2 Players</string>
 </resources>

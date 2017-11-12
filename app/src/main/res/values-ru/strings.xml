@@ -22,4 +22,7 @@
     <string name="victory_black">Победа черных!</string>
     <string name="victory_white">Победа белых!</string>
     <string name="draw">Ничья</string>
+
+    <string name="one_player">1 Игрок</string>
+    <string name="two_players">2 Игрока</string>
 </resources>

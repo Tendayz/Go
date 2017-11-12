@@ -15,88 +15,17 @@
         android:gravity="center">
 
         <TextView
-            android:id="@+id/sizeString"
+            android:layout_marginTop="25dp"
+            android:clickable="true"
+            android:textSize="18sp"
             android:textStyle="bold"
-            android:layout_width="wrap_content"
+            android:layout_width="170dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
+            android:gravity="center"
+            android:background="@drawable/btn_style"
+            android:id="@+id/onePlayer"
+            android:padding="20dp"
             />
-
-        <FrameLayout
-            android:id="@+id/frameLayout2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp">
-
-            <ImageButton
-                android:id="@+id/sizeLess"
-                android:src="@drawable/arrow1"
-                android:layout_width="25dp"
-                android:layout_height="25dp"
-                android:background="@android:color/transparent"
-                android:scaleType="centerInside"
-                />
-
-            <TextView
-                android:id="@+id/size"
-                android:textStyle="bold"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical|center_horizontal"
-                />
-
-            <ImageButton
-                android:id="@+id/sizeMore"
-                android:src="@drawable/arrow2"
-                android:layout_width="25dp"
-                android:layout_height="25dp"
-                android:layout_gravity="right"
-                android:background="@android:color/transparent"
-                android:scaleType="centerInside"
-                />
-        </FrameLayout>
-
-        <TextView
-            android:id="@+id/komiString"
-            android:textStyle="bold"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
-            />
-
-        <FrameLayout
-            android:id="@+id/frameLayout3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp">
-
-            <ImageButton
-                android:id="@+id/komiLess"
-                android:src="@drawable/arrow1"
-                android:layout_width="25dp"
-                android:layout_height="25dp"
-                android:background="@android:color/transparent"
-                android:scaleType="centerInside"
-                />
-
-            <TextView
-                android:id="@+id/komi"
-                android:textStyle="bold"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical|center_horizontal"
-                />
-
-            <ImageButton
-                android:id="@+id/komiMore"
-                android:src="@drawable/arrow2"
-                android:layout_width="25dp"
-                android:layout_height="25dp"
-                android:layout_gravity="right"
-                android:background="@android:color/transparent"
-                android:scaleType="centerInside"
-                />
-        </FrameLayout>
 
         <TextView
             android:layout_marginTop="25dp"
@@ -107,7 +36,7 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:background="@drawable/btn_style"
-            android:id="@+id/Play"
+            android:id="@+id/twoPlayers"
             android:padding="20dp"
             />
 
