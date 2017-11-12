@@ -31,13 +31,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     @Override
     public void onClick(View v) {
+        Intent intent;
         switch (v.getId()) {
             case R.id.onePlayer:
-                //Intent intent = new Intent(this, OnePlayers.class);
-                //startActivity(intent);
+                intent = new Intent(this, OnePlayer.class);
+                startActivity(intent);
                 break;
             case R.id.twoPlayers:
-                Intent intent = new Intent(this, TwoPlayers.class);
+                intent = new Intent(this, TwoPlayers.class);
                 startActivity(intent);
                 break;
         }

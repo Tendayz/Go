@@ -22,6 +22,8 @@
 
         <activity android:name="com.tenday.go.TwoPlayers" />
 
+        <activity android:name="com.tenday.go.OnePlayer" />
+
     </application>
 
 </manifest>
