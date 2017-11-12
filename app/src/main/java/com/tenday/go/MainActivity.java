@@ -14,7 +14,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     public static final String APP_PREFERENCES = "mysettings";
     public static final String N = "size";
     public static final String K = "komi";
-    int test12,test223,qwe,d123e,e42;
+    int test12,test223,qwe,d123e,e42,sdrfssdfsdf;
     private SharedPreferences mSettings;
 
     TextView btnPlay, size, komi, sizeString, komiString;
