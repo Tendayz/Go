@@ -16,4 +16,5 @@ public class Single extends Activity{
         setContentView(R.layout.activity_main);
     }
 
+    //test stroke
 }
