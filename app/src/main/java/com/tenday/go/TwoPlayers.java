@@ -147,6 +147,7 @@ public class TwoPlayers extends Activity implements View.OnClickListener {
             case R.id.Play:
                 // кнопка ОК
                 Intent intent = new Intent(this, Game.class);
+                intent.putExtra("bot", false);
                 intent.putExtra("n", n);
                 intent.putExtra("wScore", wScore);
                 startActivity(intent);

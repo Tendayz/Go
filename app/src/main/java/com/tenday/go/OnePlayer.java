@@ -8,14 +8,16 @@ import android.widget.TextView;
 
 public class OnePlayer extends Activity implements View.OnClickListener {
 
-    TextView Play;
+    TextView btnPlay;
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.one_player);
 
-        Play = (TextView) findViewById(R.id.Play);
-        Play.setOnClickListener(this);
+        btnPlay = (TextView) findViewById(R.id.Play);
+        btnPlay.setOnClickListener(this);
+
+        btnPlay.setText(R.string.play);
     }
 
     @Override
@@ -24,6 +26,8 @@ public class OnePlayer extends Activity implements View.OnClickListener {
             case R.id.Play:
                 Intent intent = new Intent(this, Game.class);
                 intent.putExtra("bot", true);
+                intent.putExtra("n", 9);
+                intent.putExtra("wScore", 0);
                 startActivity(intent);
         }
     }

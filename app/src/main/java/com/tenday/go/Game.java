@@ -17,6 +17,9 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.util.Log;
 
+import java.util.HashMap;
+import java.util.Map;
+
 
 public class Game extends Activity implements View.OnClickListener {
     Bitmap bBitmap, wBitmap, bpBitmap, wpBitmap, bDot, wDot, wDotOnB, bDotOnW, bLast, wLast, wDotOnBLast, bDotOnWLast, none;
@@ -24,7 +27,7 @@ public class Game extends Activity implements View.OnClickListener {
     Button btnOk, btnCancel;
     int[][] intArr, intArrTerritory;
     int ruleKo[];
-    boolean m = false, passCheck = true, move = false, checkMove = false, checkMove2 = false, endGame;
+    boolean m = false, passCheck = true, move = false, checkMove = false, checkMove2 = false, endGame, bot;
     int zone = 0, zone2 = 0, oldzone = 0, oldzone2 = 0, Cord = 0, bScore = 0, wScore, bTotalScore = 0, wTotalScore = 0;
     float komi;
     private static final String TAG = "myLogs";
@@ -37,10 +40,17 @@ public class Game extends Activity implements View.OnClickListener {
     SoundPool sp;
     int soundIdClick;
 
+    public int bot(int[][] intArr){
+
+        return 0;
+    }
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Intent intent = getIntent();
+        bot = intent.getBooleanExtra("bot", true);
         n = intent.getIntExtra("n", 0);
         komi = intent.getFloatExtra("wScore", 0);
         Log.d(TAG, "komi="+komi);
@@ -597,6 +607,11 @@ public class Game extends Activity implements View.OnClickListener {
                 Log.d(TAG, intArrTerritory[i1][1] + "\t" + intArrTerritory[i1][2] + "\t" + intArrTerritory[i1][3] + "\t" + intArrTerritory[i1][4] + "\t" + intArrTerritory[i1][5] + "\t" + intArrTerritory[i1][6] + "\t" + intArrTerritory[i1][7] + "\t" + intArrTerritory[i1][8] + "\t" + intArrTerritory[i1][9] + "\t" + "\n");
             }
             Log.d(TAG, "wScore = "+wScore);
+
+            if(bot){
+                m = false;
+                bot(intArr);
+            }
         }
     }
 
