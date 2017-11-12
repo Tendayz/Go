@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "303884705276",
+    "firebase_url": "https://tenday-fc7f6.firebaseio.com",
+    "project_id": "tenday-fc7f6",
+    "storage_bucket": "tenday-fc7f6.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:303884705276:android:289e1b66ed9f4185",
+        "android_client_info": {
+          "package_name": "com.tenday.go"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "303884705276-dcjpcbkkvnetaiaah3o7j88kub961bvs.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tenday.go",
+            "certificate_hash": "5b1cd50c4583d8907e38573469e8ab67c0306919"
+          }
+        },
+        {
+          "client_id": "303884705276-pf7ao96agml9rphvika2qvhntbf0pc48.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJVOobTRYQ5UdIFQcps8sJoSNBBeYOSr4"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "303884705276-pf7ao96agml9rphvika2qvhntbf0pc48.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

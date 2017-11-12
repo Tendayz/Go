@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">Go</string>
+    <string name="none">None</string>
+    <string name="size">Size</string>
+    <string name="komi">Komi</string>
+    <string name="play">Play</string>
+    <string name="main_menu">Main Menu</string>
+    <string name="menu_text">The progress of the current game will be lost. Are you sure?</string>
+    <string name="btnOk">OK</string>
+    <string name="btnCancel">Cancel</string>
+    <string name="end_game">End Game</string>
+    <string name="end_text">Are you sure you want to end the game?</string>
+    <string name="move_black">Black\'s move</string>
+    <string name="move_white">White\'s move</string>
+    <string name="score_black">B:</string>
+    <string name="score_white">W:</string>
+    <string name="btn_pass">Pass</string>
+    <string name="btn_end">Finish</string>
+    <string name="btn_new">New Game</string>
+    <string name="btn_menu">Main Menu</string>
+    <string name="victory_black">Black\'s victory!</string>
+    <string name="victory_white">White\'s victory!</string>
+    <string name="draw">Draw</string>
+</resources>

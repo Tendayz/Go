@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Го</string>
+    <string name="none">Нет</string>
+    <string name="size">Размер поля</string>
+    <string name="komi">Коми</string>
+    <string name="play">Начать</string>
+    <string name="main_menu">Главное меню</string>
+    <string name="menu_text">Прогресс игры будет утерян. Вы уверены?</string>
+    <string name="btnOk">Да</string>
+    <string name="btnCancel">Отмена</string>
+    <string name="end_game">Конец игры</string>
+    <string name="end_text">Вы уверены, что хотите закончить игру?</string>
+    <string name="move_black">Ход черных</string>
+    <string name="move_white">Ход белых</string>
+    <string name="score_black">Черные:</string>
+    <string name="score_white">Белые:</string>
+    <string name="btn_pass">Пропустить ход</string>
+    <string name="btn_end">Закончить игру</string>
+    <string name="btn_new">Новая игра</string>
+    <string name="btn_menu">Главное меню</string>
+    <string name="victory_black">Победа черных!</string>
+    <string name="victory_white">Победа белых!</string>
+    <string name="draw">Ничья</string>
+</resources>
