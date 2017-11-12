@@ -9,7 +9,6 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
-
 public class MainActivity extends Activity implements View.OnClickListener {
 
     public static final String APP_PREFERENCES = "mysettings";
