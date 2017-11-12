@@ -14,6 +14,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     public static final String APP_PREFERENCES = "mysettings";
     public static final String N = "size";
     public static final String K = "komi";
+    int test12,test223,qwe,d123e,e42;
     private SharedPreferences mSettings;
 
     TextView btnPlay, size, komi, sizeString, komiString;
@@ -27,6 +28,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         mSettings = getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE);
         setContentView(R.layout.activity_main);
 
+        test223=3;
         n = 9;
         wScore = 0;
 
