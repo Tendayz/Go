@@ -40,12 +40,6 @@ public class Game extends Activity implements View.OnClickListener {
     SoundPool sp;
     int soundIdClick;
 
-    public int bot(int[][] intArr){
-
-        return 0;
-    }
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -439,7 +433,7 @@ public class Game extends Activity implements View.OnClickListener {
     // наличие или отсутствие территории у группы;
     // номер группы, окружайщей территорию;
     // номер объединенной группы;
-    private void move(int i, int j) {
+    public void move(int i, int j) {
         if (intArr[i][j] == 0 || Cord/100 == i && Cord%100 == j) {
             if (!m) {
                 if (Cord/100 != i || Cord%100 != j){
@@ -610,13 +604,13 @@ public class Game extends Activity implements View.OnClickListener {
 
             if(bot){
                 m = false;
-                bot(intArr);
+                //bot(intArr, 0);
             }
         }
     }
 
     //Функция, в случае стоящего рядом камня другого цвета
-    private void checkMove(int i, int j, int ii, int jj) {
+    public void checkMove(int i, int j, int ii, int jj) {
         boolean a=false;
         byte rule = 0;
         if (intArr[i][j] / 10000000 != intArr[ii][jj] / 10000000 && intArr[i][j] / 10000000 != 0) {
@@ -674,7 +668,7 @@ public class Game extends Activity implements View.OnClickListener {
     }
 
     //Функция, в случае стоящего рядом камня того же цвета
-    private void checkMove2(int i, int j, int ii, int jj) {
+    public void checkMove2(int i, int j, int ii, int jj) {
         boolean a=false;
         if (intArr[i][j] / 10000000 == intArr[ii][jj] / 10000000 && intArr[i][j] != -1) {
             oldzone = intArr[i][j] % 1000;
@@ -726,7 +720,7 @@ public class Game extends Activity implements View.OnClickListener {
     }
 
     //Подсчет очков и территорий
-    private void scoring(){
+    public void scoring(){
         int[][] intArr1 = new int[n+2][n+2];
         int[][] intArr2 = new int[n+2][n+2];
         int wStrategicScore = 0, bStrategicScore = 0;
