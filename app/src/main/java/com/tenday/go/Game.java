@@ -50,9 +50,9 @@ public class Game extends Activity implements View.OnClickListener {
         Log.d(TAG, "komi="+komi);
         Log.d(TAG, "n="+n);
 
-        sp = new SoundPool(1, AudioManager.STREAM_MUSIC, 0);
+        //sp = new SoundPool(1, AudioManager.STREAM_MUSIC, 0);
         //sp.setOnLoadCompleteListener(this);
-        soundIdClick = sp.load(this, R.raw.click, 1);
+        //soundIdClick = sp.load(this, R.raw.click, 1);
 
         if (n==9)
             setContentView(R.layout.activity_game);
@@ -549,7 +549,7 @@ public class Game extends Activity implements View.OnClickListener {
                 }
             }
 
-            //Если камень окружен с четырех сторон камнями противника и правило Ко
+            //Если камень окружен с четырех сторон камнями противника или краем поля и правило Ко
             if (intArr[i][j] != 0 && !checkMove &&
                     (intArr[i+1][j]/10000000 != intArr[i][j]/10000000 && intArr[i+1][j] != 0) &&
                     (intArr[i-1][j]/10000000 != intArr[i][j]/10000000 && intArr[i-1][j] != 0) &&
