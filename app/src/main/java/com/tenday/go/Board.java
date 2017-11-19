@@ -1,5 +1,6 @@
 package com.tenday.go;
 
+import android.provider.Settings;
 import android.util.Log;
 
 public class Board {
@@ -7,7 +8,7 @@ public class Board {
     int ruleKo[];
     int[][] intArr, intArrTerritory;
     boolean passCheck, m=false, endGame = false;
-    int zone=0, zone2=0, bScore=0, wScore=0, checkRuleKo=0;
+    int zone=0, zone2=0, bScore=0, wScore=0, bTotalScore=0, wTotalScore=0, checkRuleKo=0;
 
     private static final String TAG = "myLogs";
 
@@ -31,6 +32,16 @@ public class Board {
                 }
             }
         }
+    }
+
+    public int[][] getBoard(){
+        int[][] intBoard = new int[n][n];
+        for (int i = 1; i < n+1; i++){
+            for (int j = 1; j < n+1; j++){
+                intBoard[i-1][j-1] = intArr[i][j];
+            }
+        }
+        return intBoard;
     }
 
     public void move(int i, int j) {
@@ -174,6 +185,11 @@ public class Board {
             int ruleKoBefore = ruleKo[1];
             int zone = this.zone + 1, zone2 = this.zone2 + 1;
 
+            if (!m)
+                intArr[i][j] = 10000000;
+            else
+                intArr[i][j] = 20000000;
+
             intArr[i][j] += zone + zone2 * 1000;
 
 
@@ -203,7 +219,7 @@ public class Board {
 
     //Наличие свободного дыхания рядом после поставки камня и заодно правило Ко
     private boolean checkMove1(int i, int j, int ii, int jj) {
-        if (intArr[i][j] / 10000000 != intArr[ii][jj] / 10000000 && intArr[i][j] / 10000000 != 0 && intArr[i][j] != -1) {
+        if (intArr[i][j] / 10000000 != intArr[ii][jj] / 10000000 && intArr[i][j] / 10000000 != 0) {
 
             int oldzone = intArr[i][j] % 1000;
 
@@ -230,7 +246,7 @@ public class Board {
 
             return true;
         }
-        else if (intArr[i][j] == -1)
+        else if (intArr[i][j] != 0)
             return false;
         else
             return true;
@@ -239,7 +255,6 @@ public class Board {
     //Наличие надежного союзного камня рядом
     private boolean checkMove2(int i, int j, int ii, int jj) {
         if (intArr[i][j] / 10000000 == intArr[ii][jj] / 10000000) {
-
             int
                     oldzone = intArr[i][j] % 1000,
                     oldzone2 = (intArr[i][j]%1000000)/1000,
@@ -274,6 +289,373 @@ public class Board {
         else{
             endGame = true;
         }
+    }
+
+    //Подсчет очков и территорий
+    public void scoring(){
+        int[][] intArr1 = new int[n+2][n+2];
+        int[][] intArr2 = new int[n+2][n+2];
+        int wStrategicScore = 0, bStrategicScore = 0;
+
+        for (int i = 0; i < n+2; i++){
+            for (int j = 0; j < n+2; j++){
+                intArr1[i][j] = intArr[i][j];
+                if (i==0 || j==0 || i==n+1 || j==n+1) {
+                    intArr2[i][j] = -1;
+                    intArrTerritory[i][j] = -1;
+                }
+                else {
+                    intArr2[i][j] = 0;
+                    intArrTerritory[i][j] = 0;
+                }
+            }
+        }
+
+        for (int i = 1; i < n+1; i++){
+            for (int j = 1; j < n+1; j++) {
+                if ((intArr1[i][j] % 1000000) / 1000 > 0){
+                    int oldzone2 = (intArr1[i][j] % 1000000) / 1000;
+
+                    //Анализ территорий
+                    for (int i1=1; i1 < n+1; i1++){
+                        for (int j1=1; j1 < n+1; j1++){
+                            if ((intArr1[i1][j1]%1000000)/1000 == oldzone2){
+                                for (int j2=j1+1; j2 < n+1; j2++) {
+                                    if ((intArr1[i1][j2] % 1000000)/1000 != oldzone2 ) {
+                                        intArr2[i1][j2]++;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    for (int j1=1; j1 < n+1; j1++){
+                        for (int i1=1; i1 < n+1; i1++) {
+                            if ((intArr1[i1][j1]%1000000)/1000 == oldzone2){
+                                for (int i2=i1+1; i2 < n+1; i2++) {
+                                    if ((intArr1[i2][j1] % 1000000)/1000 != oldzone2) {
+                                        intArr2[i2][j1]++;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    for (int i1=1; i1 < n+1; i1++){
+                        for (int j1=n; j1 > 0; j1--){
+                            if ((intArr1[i1][j1]%1000000)/1000 == oldzone2){
+                                for (int j2=j1-1; j2 > 0; j2--) {
+                                    if ((intArr1[i1][j2] % 1000000)/1000 != oldzone2 ) {
+                                        intArr2[i1][j2]++;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    for (int j1=1; j1 < n+1; j1++){
+                        for (int i1=n; i1 > 0; i1--){
+                            if ((intArr1[i1][j1]%1000000)/1000 == oldzone2){
+                                for (int i2=i1-1; i2 > 0; i2--){
+                                    if ((intArr1[i2][j1] % 1000000)/1000 != oldzone2) {
+                                        intArr2[i2][j1]++;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    //
+
+                    //Наличие территории из трех стен
+                    for (int i1 = 1; i1 < n+1; i1++){
+                        for (int j1 = 1; j1 < n+1; j1++){
+                            if ((i1 == 1 || i1 == n || j1 == 1 || j1 == n) && intArr2[i1][j1] == 3){
+                                for (int i2 = 1; i2 < n+1; i2++){
+                                    for (int j2 = 1; j2 < n+1; j2++){
+                                        if (intArr2[i2][j2] == 3)
+                                            intArr2[i2][j2] = 4;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    //
+
+                    //Наличие территории из двух стен
+
+                    if (intArr2[1][1]==2 || intArr2[1][n]==2 || intArr2[n][n]==2 || intArr2[n][1]==2){
+                        for (int i1=1; i1 < n+1; i1++){
+                            for (int j1 = 1; j1 < n+1; j1++) {
+                                if (intArr2[i1][j1] >= 2) {
+                                    intArr2[i1][j1] = 4;
+                                }
+                            }
+                        }
+                    }
+                    //
+
+                    //Наличие территории из одной стены
+                    boolean oneWall = false;
+                    i1: for (int i1 = 1; i1 < n+1; i1++){
+                        if ((intArr1[i1][1]%1000000)/1000 == oldzone2) {
+                            for (int i2 = 1; i2 < n+1; i2++){
+                                if ((intArr1[i2][n]%1000000)/1000 == oldzone2) {
+                                    oneWall = true;
+                                    break i1;
+                                }
+                            }
+                        }
+                    }
+
+                    j1: for (int j1 = 1; j1 < n+1; j1++){
+                        if ((intArr1[1][j1]%1000000)/1000 == oldzone2) {
+                            for (int j2 = 1; j2 < n+1; j2++){
+                                if ((intArr1[n][j2]%1000000)/1000 == oldzone2) {
+                                    oneWall = true;
+                                    break j1;
+                                }
+                            }
+                        }
+                    }
+
+                    if (oneWall){
+                        for (int i1 = 1; i1 < n+1; i1++){
+                            for (int j1 = 1; j1 < n+1; j1++){
+                                if (intArr2[i1][j1] >= 1)
+                                    intArr2[i1][j1] = 4;
+                            }
+                        }
+                    }
+
+                    // Устранение фиктивных территорий
+
+                    for (int k = 0; k < 5; k++) {
+                        for (int i1 = 1; i1 < n+1; i1++) {
+                            for (int j1 = 1; j1 < n+1; j1++) {
+                                if (intArr2[i1][j1] == 4 && intArr2[i1][j1 - 1] > 0 && intArr2[i1][j1 - 1] < 4) {
+                                    intArr2[i1][j1] = 1;
+                                }
+                            }
+                        }
+
+                        for (int j1 = 1; j1 < n+1; j1++) {
+                            for (int i1 = 1; i1 < n+1; i1++) {
+                                if (intArr2[i1][j1] == 4 && intArr2[i1 - 1][j1] > 0 && intArr2[i1 - 1][j1] < 4) {
+                                    intArr2[i1][j1] = 1;
+                                }
+                            }
+                        }
+
+                        for (int i1 = 1; i1 < n+1; i1++) {
+                            for (int j1 = n; j1 > 0; j1--) {
+                                if (intArr2[i1][j1] == 4 && intArr2[i1][j1+1] > 0 && intArr2[i1][j1+1] < 4) {
+                                    intArr2[i1][j1] = 1;
+                                }
+                            }
+                        }
+
+                        for (int j1 = 1; j1 < n+1; j1++) {
+                            for (int i1 = n; i1 > 0; i1--) {
+                                if (intArr2[i1][j1] == 4 && intArr2[i1 + 1][j1] > 0 && intArr2[i1 + 1][j1] < 4) {
+                                    intArr2[i1][j1] = 1;
+                                }
+                            }
+                        }
+                    }
+
+                    i1 : for (int i1 = 1; i1 < n + 1; i1++) {
+                        for (int j1 = 1; j1 < n + 1; j1++) {
+                            if (intArr2[i1][j1] == 4) {
+                                for (int i2 = 1; i2 < n + 1; i2++) {
+                                    for (int j2 = 1; j2 < n + 1; j2++) {
+                                        if ((intArr1[i2][j2] % 1000000) / 1000 == oldzone2)
+                                            intArr1[i2][j2] += 1000000;
+                                    }
+                                }
+                                break i1;
+                            }
+                        }
+                    }
+
+                    //Проверка являются ли территория смешанной
+
+                    for (int i1 = 1; i1 < n+1; i1++) {
+                        for (int j1 = 1; j1 < n+1; j1++) {
+                            if (intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000 && (intArr1[i1][j1]%10000000)/1000000 == 1 &&
+                                    (i1 == 1 || j1 == 1 || i1 == n || j1 == n)) {
+                                for (int i2 = 1; i2 < n+1; i2++) {
+                                    for (int j2 = 1; j2 < n+1; j2++) {
+                                        if ((intArr1[i2][j2]%1000000)/1000 == oldzone2 && intArrTerritory[i2][j2] != intArr1[i2][j2]/10000000 && intArrTerritory[i2][j2] > 0 &&
+                                                (i2 == 1 || j2 == 1 || i2 == n || j2 == n)) {
+                                            intArr2[i1][j1] = 1;
+                                            intArrTerritory[i2][j2] = 0;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    /////
+                    for (int i1 = 1; i1 < n+1; i1++) {
+                        Log.d(TAG, "Перед первой: "+intArr2[i1][1] + "\t" + intArr2[i1][2] + "\t" + intArr2[i1][3] + "\t" + intArr2[i1][4] + "\t" + intArr2[i1][5] + "\t" + intArr2[i1][6] + "\t" + intArr2[i1][7] + "\t" + intArr2[i1][8] + "\t" + intArr2[i1][9] + "\t" + "\n\n");
+                    }
+                    Log.d(TAG, "///");
+
+                    oldzone2 = (intArr1[i][j]%1000000)/1000;
+                    for (int k = 0; k < 5; k++) {
+                        for (int i1 = 1; i1 < n+1; i1++) {
+                            for (int j1 = 1; j1 < n+1; j1++) {
+                                if (intArr2[i1][j1] == 4 && intArr2[i1][j1 - 1] > 0 && intArr2[i1][j1 - 1] < 4 && ((intArr1[i1][j1]%10000000)/1000000 != 1 ||
+                                        intArr1[i1][j1]/10000000 != 0 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000) ||
+                                        (intArr1[i1][j1]%10000000)/1000000 >= 1 && intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000 /*&& mix*/ &&
+                                                (i1 == 1 || j1 == 1 || i1 == n || j1 == n)) {
+                                    intArr2[i1][j1] = 1;
+                                }
+                            }
+                        }
+
+                        for (int j1 = 1; j1 < n+1; j1++) {
+                            for (int i1 = 1; i1 < n+1; i1++) {
+                                if (intArr2[i1][j1] == 4 && intArr2[i1 - 1][j1] > 0 && intArr2[i1 - 1][j1] < 4 && ((intArr1[i1][j1]%10000000)/1000000 != 1 ||
+                                        intArr1[i1][j1]/10000000 != 0 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000) ||
+                                        (intArr1[i1][j1]%10000000)/1000000 >= 1  && intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000 /*&& mix*/ &&
+                                                (i1 == 1 || j1 == 1 || i1 == n || j1 == n)) {
+                                    intArr2[i1][j1] = 1;
+                                }
+                            }
+                        }
+
+                        for (int i1 = 1; i1 < n+1; i1++) {
+                            for (int j1 = n; j1 > 0; j1--) {
+                                if (intArr2[i1][j1] == 4 && intArr2[i1][j1+1] > 0 && intArr2[i1][j1+1] < 4 && ((intArr1[i1][j1]%10000000)/1000000 != 1 ||
+                                        intArr1[i1][j1]/10000000 != 0 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000) ||
+                                        (intArr1[i1][j1]%10000000)/1000000 >= 1 && intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000 /*&& mix*/ &&
+                                                (i1 == 1 || j1 == 1 || i1 == n || j1 == n)) {
+                                    intArr2[i1][j1] = 1;
+                                }
+                            }
+                        }
+
+                        for (int j1 = 1; j1 < n+1; j1++) {
+                            for (int i1 = n; i1 > 0; i1--) {
+                                if (intArr2[i1][j1] == 4 && intArr2[i1 + 1][j1] > 0 && intArr2[i1 + 1][j1] < 4 && ((intArr1[i1][j1]%10000000)/1000000 != 1 ||
+                                        intArr1[i1][j1]/10000000 != 0 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000) ||
+                                        (intArr1[i1][j1]%10000000)/1000000 >= 1 && intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000 /*&& mix*/ &&
+                                                (i1 == 1 || j1 == 1 || i1 == n || j1 == n)) {
+                                    intArr2[i1][j1] = 1;
+                                }
+                            }
+                        }
+                    }
+
+                    for (int i1 = 1; i1 < n+1; i1++) {
+                        Log.d(TAG, "После первой: "+intArr2[i1][1] + "\t" + intArr2[i1][2] + "\t" + intArr2[i1][3] + "\t" + intArr2[i1][4] + "\t" + intArr2[i1][5] + "\t" + intArr2[i1][6] + "\t" + intArr2[i1][7] + "\t" + intArr2[i1][8] + "\t" + intArr2[i1][9] + "\t" + "\n\n");
+                    }
+                    Log.d(TAG, "///");
+
+                    for (int k = 0; k < 5; k++) {
+                        for (int i1 = 1; i1 < n+1; i1++) {
+                            for (int j1 = 1; j1 < n+1; j1++) {
+                                if (intArr2[i1][j1 - 1] == 4 && intArr1[i1][j1 - 1]/10000000 != intArrTerritory[i1][j1] && intArrTerritory[i1][j1] > 0 ||
+                                        intArrTerritory[i1][j1 - 1] == 0 && intArr1[i1][j1 - 1]/10000000 != intArrTerritory[i1][j1] ) {
+                                    intArrTerritory[i1][j1] = 0;
+                                }
+                            }
+                        }
+
+                        for (int j1 = 1; j1 < n+1; j1++) {
+                            for (int i1 = 1; i1 < n+1; i1++) {
+                                if (intArr2[i1 - 1][j1] == 4 && intArr1[i1 - 1][j1]/10000000 != intArrTerritory[i1][j1] && intArrTerritory[i1][j1] > 0 ||
+                                        intArrTerritory[i1 - 1][j1] == 0 && intArr1[i1 - 1][j1]/10000000 != intArrTerritory[i1][j1]) {
+                                    intArrTerritory[i1][j1] = 0;
+                                }
+                            }
+                        }
+
+                        for (int i1 = 1; i1 < n+1; i1++) {
+                            for (int j1 = n; j1 > 0; j1--) {
+                                if (intArr2[i1][j1 + 1] == 4 && intArr1[i1][j1 + 1]/10000000 != intArrTerritory[i1][j1] && intArrTerritory[i1][j1] > 0 ||
+                                        intArrTerritory[i1][j1 + 1] == 0 && intArr1[i1][j1 + 1]/10000000 != intArrTerritory[i1][j1]) {
+                                    intArrTerritory[i1][j1] = 0;
+                                }
+                            }
+                        }
+
+                        for (int j1 = 1; j1 < n+1; j1++) {
+                            for (int i1 = n; i1 > 0; i1--) {
+                                if (intArr2[i1 + 1][j1] == 4 && intArr1[i1 + 1][j1]/10000000 != intArrTerritory[i1][j1] && intArrTerritory[i1][j1] > 0 ||
+                                        intArrTerritory[i1 + 1][j1] == 0 && intArr1[i1 + 1][j1]/10000000 != intArrTerritory[i1][j1]) {
+                                    intArrTerritory[i1][j1] = 0;
+                                }
+                            }
+                        }
+                    }
+                    ///
+
+                    for (int i1 = 1; i1 < n+1; i1++) {
+                        Log.d(TAG, "После второй: "+intArrTerritory[i1][1] + "\t" + intArrTerritory[i1][2] + "\t" + intArrTerritory[i1][3] + "\t" + intArrTerritory[i1][4] + "\t" + intArrTerritory[i1][5] + "\t" + intArrTerritory[i1][6] + "\t" + intArrTerritory[i1][7] + "\t" + intArrTerritory[i1][8] + "\t" + intArrTerritory[i1][9] + "\t" + "\n\n");
+                    }
+                    Log.d(TAG, "///");
+                    //Распределение получившихся территорий
+                    for (int i1 = 1; i1 < n + 1; i1++) {
+                        for (int j1 = 1; j1 < n + 1; j1++) {
+                            if (intArr2[i1][j1] == 4)
+                                intArrTerritory[i1][j1] = intArr1[i][j] / 10000000;
+                            if ((intArr1[i1][j1]%10000000)/1000000==1 && intArr2[i1][j1]==4)
+                                intArr1[i1][j1] -= 1000000;
+                        }
+                    }
+                    ////
+
+                    for (int i1=1; i1 < n+1; i1++){
+                        for (int j1=1; j1 < n+1; j1++) {
+                            intArr2[i1][j1] = 0;
+                        }
+                    }
+
+                    for (int i1=1; i1 < n+1; i1++){
+                        for (int j1=1; j1 < n+1; j1++) {
+                            if ((intArr1[i1][j1]%1000000)/1000 == oldzone2) {
+                                intArr1[i1][j1] -= oldzone2*1000;
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
+        // Присвоение очков //
+        for (int i1=1; i1 < n+1; i1++){
+            for (int j1=1; j1 < n+1; j1++) {
+                if (intArrTerritory[i1][j1] == 1) {
+                    //Добавление очков черным
+                    if (intArr1[i1][j1]==0)
+                        bStrategicScore++;
+                    else if (intArr1[i1][j1]/10000000==2)
+                        bStrategicScore += 2;
+                }
+                else if (intArrTerritory[i1][j1] == 2) {
+                    //Добавление очков белым
+                    if (intArr1[i1][j1]==0)
+                        wStrategicScore++;
+                    else if (intArr1[i1][j1]/10000000==1)
+                        wStrategicScore += 2;
+                }
+            }
+        }
+
+        wTotalScore = wScore+wStrategicScore;
+        bTotalScore = bScore+bStrategicScore;
+        /*if (komi != 0)
+            textWhite.setText(getResources().getString(R.string.score_white) + " " + (wTotalScore+komi));
+        else
+            textWhite.setText(getResources().getString(R.string.score_white) + " " + wTotalScore);
+        textBlack.setText(getResources().getString(R.string.score_black) + " " +bTotalScore);*/
+
     }
 
 }
