@@ -1,7 +1,6 @@
 package com.tenday.go;
 
 import android.provider.Settings;
-import android.util.Log;
 
 public class Board {
     int n;
@@ -9,11 +8,11 @@ public class Board {
     int[][] intArr, intArrTerritory;
     boolean passCheck, m=false, endGame = false;
     int zone=0, zone2=0, bScore=0, wScore=0, bTotalScore=0, wTotalScore=0, checkRuleKo=0;
+    float komi;
 
-    private static final String TAG = "myLogs";
-
-    public Board(int n){
+    public Board(int n, float komi){
         this.n = n;
+        this.komi = komi;
 
         ruleKo = new int[2];
         ruleKo[1] = 0;
@@ -34,25 +33,65 @@ public class Board {
         }
     }
 
+    public int getSize() { return n; }
+
+    public int getBScore (){
+        return bTotalScore;
+    }
+
+    public float getWScore (){
+        if (komi!=0)
+            return wTotalScore+komi;
+        else
+            return wTotalScore;
+    }
+
+    public int getMovesColor(){
+        if (m)
+            return 2;
+        else
+            return 1;
+    }
+
     public int[][] getBoard(){
-        int[][] intBoard = new int[n][n];
+        int[][] intBoard = new int[n+2][n+2];
         for (int i = 1; i < n+1; i++){
             for (int j = 1; j < n+1; j++){
-                intBoard[i-1][j-1] = intArr[i][j];
+                intBoard[i][j] = intArr[i][j]/10000000;
             }
         }
-        return intBoard;
+        return intArr;
+    }
+
+    public void newGame(){
+        endGame = false;
+        m=false;
+        zone = 0;
+        zone2 = 0;
+
+        ruleKo[1] = 0;
+        for (int i = 0; i < n+2; i++) {
+            for (int j = 0; j < n+2; j++) {
+                if (i == 0 || j == 0 || i==n+1 || j==n+1) {
+                    intArr[i][j] = -1;
+                    intArrTerritory[i][j] = -1;
+                }
+                else {
+                    intArr[i][j] = 0;
+                    intArrTerritory[i][j] = 0;
+                }
+            }
+        }
     }
 
     public void move(int i, int j) {
-        if (!endGame && checkMove(i, j)) {
+        if (!endGame /*&& checkMove(i, j)*/) {
+            passCheck = true;
             if (!m) {
                 m = true;
-                passCheck = true;
                 intArr[i][j] = 10000000;
             } else if (m) {
                 m = false;
-                passCheck = true;
                 intArr[i][j] = 20000000;
             }
 
@@ -118,14 +157,6 @@ public class Board {
             }
 
             ruleKo[0] = ruleKo[1];
-
-            for (int i1 = 1; i1 < n+1; i1++) {
-                Log.d(TAG, intArr[i1][1] + "\t" + intArr[i1][2] + "\t" + intArr[i1][3] + "\t" + intArr[i1][4] + "\t" + intArr[i1][5] + "\t" + intArr[i1][6] + "\t" + intArr[i1][7] + "\t" + intArr[i1][8] + "\t" + intArr[i1][9] + "\t" + "\n");
-            }
-            for (int i1 = 1; i1 < n+1; i1++) {
-                Log.d(TAG, intArrTerritory[i1][1] + "\t" + intArrTerritory[i1][2] + "\t" + intArrTerritory[i1][3] + "\t" + intArrTerritory[i1][4] + "\t" + intArrTerritory[i1][5] + "\t" + intArrTerritory[i1][6] + "\t" + intArrTerritory[i1][7] + "\t" + intArrTerritory[i1][8] + "\t" + intArrTerritory[i1][9] + "\t" + "\n");
-            }
-            Log.d(TAG, "wScore = "+wScore);
         }
     }
 
@@ -292,7 +323,7 @@ public class Board {
     }
 
     //Подсчет очков и территорий
-    public void scoring(){
+    public int[][] scoring(){
         int[][] intArr1 = new int[n+2][n+2];
         int[][] intArr2 = new int[n+2][n+2];
         int wStrategicScore = 0, bStrategicScore = 0;
@@ -500,10 +531,6 @@ public class Board {
                         }
                     }
                     /////
-                    for (int i1 = 1; i1 < n+1; i1++) {
-                        Log.d(TAG, "Перед первой: "+intArr2[i1][1] + "\t" + intArr2[i1][2] + "\t" + intArr2[i1][3] + "\t" + intArr2[i1][4] + "\t" + intArr2[i1][5] + "\t" + intArr2[i1][6] + "\t" + intArr2[i1][7] + "\t" + intArr2[i1][8] + "\t" + intArr2[i1][9] + "\t" + "\n\n");
-                    }
-                    Log.d(TAG, "///");
 
                     oldzone2 = (intArr1[i][j]%1000000)/1000;
                     for (int k = 0; k < 5; k++) {
@@ -552,11 +579,6 @@ public class Board {
                         }
                     }
 
-                    for (int i1 = 1; i1 < n+1; i1++) {
-                        Log.d(TAG, "После первой: "+intArr2[i1][1] + "\t" + intArr2[i1][2] + "\t" + intArr2[i1][3] + "\t" + intArr2[i1][4] + "\t" + intArr2[i1][5] + "\t" + intArr2[i1][6] + "\t" + intArr2[i1][7] + "\t" + intArr2[i1][8] + "\t" + intArr2[i1][9] + "\t" + "\n\n");
-                    }
-                    Log.d(TAG, "///");
-
                     for (int k = 0; k < 5; k++) {
                         for (int i1 = 1; i1 < n+1; i1++) {
                             for (int j1 = 1; j1 < n+1; j1++) {
@@ -595,11 +617,6 @@ public class Board {
                         }
                     }
                     ///
-
-                    for (int i1 = 1; i1 < n+1; i1++) {
-                        Log.d(TAG, "После второй: "+intArrTerritory[i1][1] + "\t" + intArrTerritory[i1][2] + "\t" + intArrTerritory[i1][3] + "\t" + intArrTerritory[i1][4] + "\t" + intArrTerritory[i1][5] + "\t" + intArrTerritory[i1][6] + "\t" + intArrTerritory[i1][7] + "\t" + intArrTerritory[i1][8] + "\t" + intArrTerritory[i1][9] + "\t" + "\n\n");
-                    }
-                    Log.d(TAG, "///");
                     //Распределение получившихся территорий
                     for (int i1 = 1; i1 < n + 1; i1++) {
                         for (int j1 = 1; j1 < n + 1; j1++) {
@@ -655,7 +672,25 @@ public class Board {
         else
             textWhite.setText(getResources().getString(R.string.score_white) + " " + wTotalScore);
         textBlack.setText(getResources().getString(R.string.score_black) + " " +bTotalScore);*/
+        return intArrTerritory;
 
+    }
+
+    public boolean checkEye(int i, int j){
+        //Проверяем 9 вариантов глаза, начиная с середины, а потом сверху
+        if (intArr[i+1][j] > 0 && intArr[i+1][j]%1000 ==  intArr[i-1][j]%1000 && intArr[i+1][j]%1000 ==  intArr[i][j+1]%1000 && intArr[i+1][j]%1000 ==  intArr[i][j-1]%1000
+                || intArr[i-1][j] == -1 && intArr[i][j-1]%1000 == intArr[i][j+1]%1000 && intArr[i][j-1]%1000 == intArr[i+1][j]%1000 && intArr[i][j-1] > 0
+                || intArr[i-1][j] == -1 && intArr[i][j+1] == -1 && intArr[i][j-1]%1000 == intArr[i+1][j]%1000 && intArr[i][j-1] > 0
+                || intArr[i][j+1] == -1 && intArr[i-1][j]%1000 == intArr[i+1][j]%1000 && intArr[i-1][j]%1000 == intArr[i][j-1]%1000 && intArr[i-1][j] > 0
+                || intArr[i][j+1] == -1 && intArr[i+1][j] == -1 && intArr[i][j-1]%1000 == intArr[i-1][j]%1000 && intArr[i][j-1] > 0
+                || intArr[i+1][j] == -1 && intArr[i][j-1]%1000 == intArr[i][j+1]%1000 && intArr[i][j-1]%1000 == intArr[i-1][j]%1000 && intArr[i][j-1] > 0
+                || intArr[i+1][j] == -1 && intArr[i][j-1] == -1 && intArr[i-1][j]%1000 == intArr[i][j+1]%1000 && intArr[i-1][j]%1000 > 0
+                || intArr[i][j-1] == -1 && intArr[i-1][j]%1000 == intArr[i+1][j]%1000 && intArr[i-1][j]%1000 == intArr[i][j+1]%1000 && intArr[i-1][j] > 0
+                || intArr[i-1][j] == -1 && intArr[i][j-1] == -1 && intArr[i][j+1]%1000 == intArr[i+1][j]%1000 && intArr[i][j+1] > 0
+                )
+            return true;
+        else
+            return false;
     }
 
 }

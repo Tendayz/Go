@@ -19,16 +19,17 @@ import android.util.Log;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 
 public class Game extends Activity implements View.OnClickListener {
     Bitmap bBitmap, wBitmap, bpBitmap, wpBitmap, bDot, wDot, wDotOnB, bDotOnW, bLast, wLast, wDotOnBLast, bDotOnWLast, none;
     ImageButton[][] ncArr;
     Button btnOk, btnCancel;
-    int[][] intArr, intArrTerritory;
+    private int[][] intArr, intArrTerritory;
     int ruleKo[];
     boolean m = false, passCheck = true, move = false, checkMove = false, checkMove2 = false, endGame, bot;
-    int zone = 0, zone2 = 0, oldzone = 0, oldzone2 = 0, Cord = 0, bScore = 0, wScore, bTotalScore = 0, wTotalScore = 0;
+    int zone = 0, zone2 = 0, oldzone = 0, oldzone2 = 0, cord = 0, cordLast = 0, bScore = 0, wScore, bTotalScore = 0, wTotalScore = 0;
     float komi;
     private static final String TAG = "myLogs";
     TextView status, textBlack, textWhite, pass, menu, title, text;
@@ -37,7 +38,7 @@ public class Game extends Activity implements View.OnClickListener {
     final int DIALOG_END = 2;
     int n;
 
-    Board board;
+    private Board board;
 
     SoundPool sp;
     int soundIdClick;
@@ -63,7 +64,7 @@ public class Game extends Activity implements View.OnClickListener {
         else
             setContentView(R.layout.activity_game3);
 
-        board = new Board(n);
+        board = new Board(n, komi);
 
         status = (TextView) findViewById(R.id.status);
         textBlack = (TextView) findViewById(R.id.black);
@@ -136,187 +137,382 @@ public class Game extends Activity implements View.OnClickListener {
         }
     }
 
+    public void move(int i, int j){
+        if (cord == i * 100 + j) {
+            System.out.println("11111111111111111");
+            board.move(i, j);
+
+            if (cordLast / 1000 == 1)
+                ncArr[(cordLast % 1000) / 100 - 1][cordLast % 100 - 1].setImageBitmap(bBitmap);
+            else if (cordLast / 1000 == 2)
+                ncArr[(cordLast % 1000) / 100 - 1][cordLast % 100 - 1].setImageBitmap(wBitmap);
+
+            if (!m) {
+                cordLast = 1000 + i * 100 + j;
+                ncArr[i - 1][j - 1].setImageBitmap(bLast);
+                m = true;
+                status.setText(R.string.move_white);
+            } else {
+                cordLast = 2000 + i * 100 + j;
+                ncArr[i - 1][j - 1].setImageBitmap(wLast);
+                m = false;
+                status.setText(R.string.move_black);
+            }
+
+            cord = 0;
+            intArrTerritory = board.scoring();
+            intArr = board.getBoard();
+            for (int i1 = 0; i1 < n; i1++) {
+                for (int j1 = 0; j1 < n; j1++) {
+                    if (intArrTerritory[i1 + 1][j1 + 1] == 1 && intArr[i1 + 1][j1 + 1] == 0)
+                        ncArr[i1][j1].setImageBitmap(bDot);
+                    else if (intArrTerritory[i1 + 1][j1 + 1] == 1 && intArr[i1 + 1][j1 + 1]/10000000 == 2)
+                        ncArr[i1][j1].setImageBitmap(bDotOnW);
+                    else if (intArrTerritory[i1 + 1][j1 + 1] == 2 && intArr[i1 + 1][j1 + 1]/10000000 == 0)
+                        ncArr[i1][j1].setImageBitmap(wDot);
+                    else if (intArrTerritory[i1 + 1][j1 + 1] == 2 && intArr[i1 + 1][j1 + 1]/10000000 == 1)
+                        ncArr[i1][j1].setImageBitmap(wDotOnB);
+                    else if (1000 + i1 * 100 + j1 != cordLast && intArr[i1 + 1][j1 + 1]/10000000 == 1)
+                        ncArr[i1][j1].setImageBitmap(bBitmap);
+                    else if (1000 + i1 * 100 + j1 != cordLast && intArr[i1 + 1][j1 + 1]/10000000 == 2)
+                        ncArr[i1][j1].setImageBitmap(wBitmap);
+                    else if (intArr[i1 + 1][j1 + 1] == 0 && intArrTerritory[i1 + 1][j1 + 1] == 0)
+                        ncArr[i1][j1].setImageBitmap(none);
+
+                }
+            }
+
+            //BOT'S TEST
+            if (board.zone > 0) {
+                TreeBot bot = new TreeBot(board);
+                int bestMove = bot.bot(bot);
+                System.out.println("BEEEEEEEEEEEEEEEEESTTTTTTTTTTT MOOOOOOOOOVEEEEEEEEEEEE!!!!!!!!!!!!   -   " + bestMove);
+            }
+
+            //BOT'S TEST
+
+            if (komi == 0)
+                textWhite.setText(getResources().getString(R.string.score_white) + " " + (int)(board.getWScore()));
+            else
+                textWhite.setText(getResources().getString(R.string.score_white) + " " + (board.getWScore()));
+            textBlack.setText(getResources().getString(R.string.score_black) + " " + board.getBScore());
+
+            pass.setText(getResources().getString(R.string.btn_pass));
+
+        } else if (cord != i * 100 + j && board.checkMove(i, j)) {
+            System.out.println("22222222222222222222");
+            if (cord != 0) {
+                if (intArrTerritory[cord / 100][cord % 100] == 0)
+                    ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(none);
+                else if (intArrTerritory[cord / 100][cord % 100] == 1)
+                    ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(bDot);
+                else if (intArrTerritory[cord / 100][cord % 100] == 2)
+                    ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(wDot);
+            }
+            cord = i * 100 + j;
+            if (m)
+                ncArr[i - 1][j - 1].setImageBitmap(wpBitmap);
+            else
+                ncArr[i - 1][j - 1].setImageBitmap(bpBitmap);
+        } else if (cord != i * 100 + j && !board.checkMove(i, j)) {
+
+            for (int i1 = 1; i1 < n+1; i1++){
+                for (int j1 = 1; j1 < n+1; j1++){
+                    System.out.print(intArr[i1][j1]+" ");
+                }
+                System.out.println();
+            }
+
+            System.out.println("33333333333333333333 intArr[i][j] = "+intArr[i][j]);
+            if (cord != 0) {
+                if (intArrTerritory[cord / 100][cord % 100] == 0)
+                    ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(none);
+                else if (intArrTerritory[cord / 100][cord % 100] == 1)
+                    ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(bDot);
+                else if (intArrTerritory[cord / 100][cord % 100] == 2)
+                    ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(wDot);
+            }
+            cord = 0;
+        }
+
+    }
+
+    private static Random random = new Random();
+
+    static int[] generateRandom(int k) {
+        int [] arr = new int[k];
+        int tmp, i = 0, j;
+        boolean addElement;
+        while(i < k){
+            tmp = Math.abs(random.nextInt()) % k;
+            addElement = true;
+            for (j = 0; j < i; j++){
+                if (arr[j] == tmp)
+                    addElement = false;
+            }
+
+            if (addElement){
+                arr[i] = tmp;
+                i++;
+            }
+        }
+        return arr;
+    }
+
+    public int bot(TreeBot root) {
+        Board board = root.getBoard(), board1;
+        int /*n = board.getSize(),*/ i, j;
+        int winner;
+
+        int[] avMoves = new int[n * n];
+        int k = 0;
+
+        //Определяем доступные ходы и записываем их в массив avMoves
+        /*for (i = 1; i < n+1; i++) {
+            for (j = 1; j < n+1; j++) {
+                if (board.checkMove(i, j) && board.checkEye(i, j)) {
+                    avMoves[k] = i * 100 + j;
+                    k++;
+                }
+            }
+        }*/
+
+        //Если доступных ходов нет, то возвращаем победителя
+        if (k == 0) {
+            board.scoring();
+            if (board.getBScore() > board.getWScore()) {
+                return 1;
+            } else if (board.getBScore() < board.getWScore()) {
+                return 2;
+            } else
+                return 0;
+        }
+
+
+        //Зарандомленные доступные ходы
+        int[] rand = generateRandom(k);
+
+        //Кол-во партий
+        int amount = 0;
+
+        //Приоритетность ходов
+        int movePriority[] = new int[k];
+
+        //Инициализация
+        while (amount < 10){ //В данном случае, 5000 раз будет выполняться только в самом верху,
+            // так как ниже есть проверка на самый верхний узел, иначе return, и, следовательно, выход из цикла
+            for (i = 0; i < k; i++) {
+                board1 = board;
+                board1.move(avMoves[rand[i]] / 100, avMoves[rand[i]] % 100);
+                if (root.parent != null)
+                    return bot(root.addChild(board1)); //Добавит новый узел в дерево и вызовит функцию бот с этим узлом в качестве аргумента. И возвратит все этого вышестоящей функции, если имеется
+                else if (root.parent == null){
+                    amount++;
+                    winner = bot(root.addChild(board1));
+                    if (board.getMovesColor() == winner)
+                        movePriority[rand[i]]++;
+                }
+
+            }
+        }
+
+        //Определяем самый приоритетный ход
+        int bestMoveI = 0;
+        for (i=0; i<k; i++){
+            if (movePriority[i] > bestMoveI) {
+                bestMoveI = movePriority[i];
+            }
+        }
+
+        return avMoves[bestMoveI];
+    }
+
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.imageButton1: board.move(1, 1); break;
-            case R.id.imageButton2: board.move(1, 2); break;
-            case R.id.imageButton3: board.move(1, 3); break;
-            case R.id.imageButton4: board.move(1, 4); break;
-            case R.id.imageButton5: board.move(1, 5); break;
-            case R.id.imageButton6: board.move(1, 6); break;
-            case R.id.imageButton7: board.move(1, 7); break;
-            case R.id.imageButton8: board.move(1, 8); break;
-            case R.id.imageButton9: board.move(1, 9); break;
-            case R.id.imageButton82: board.move(1, 10); break;
-            case R.id.imageButton83: board.move(1, 11); break;
-            case R.id.imageButton122: board.move(1, 12); break;
-            case R.id.imageButton123: board.move(1, 13); break;
-            case R.id.imageButton10: board.move(2, 1); break;
-            case R.id.imageButton11: board.move(2, 2); break;
-            case R.id.imageButton12: board.move(2, 3); break;
-            case R.id.imageButton13: board.move(2, 4); break;
-            case R.id.imageButton14: board.move(2, 5); break;
-            case R.id.imageButton15: board.move(2, 6); break;
-            case R.id.imageButton16: board.move(2, 7); break;
-            case R.id.imageButton17: board.move(2, 8); break;
-            case R.id.imageButton18: board.move(2, 9); break;
-            case R.id.imageButton84: board.move(2, 10); break;
-            case R.id.imageButton85: board.move(2, 11); break;
-            case R.id.imageButton124: board.move(2, 12); break;
-            case R.id.imageButton125: board.move(2, 13); break;
-            case R.id.imageButton19: board.move(3, 1); break;
-            case R.id.imageButton20: board.move(3, 2); break;
-            case R.id.imageButton21: board.move(3, 3); break;
-            case R.id.imageButton22: board.move(3, 4); break;
-            case R.id.imageButton23: board.move(3, 5); break;
-            case R.id.imageButton24: board.move(3, 6); break;
-            case R.id.imageButton25: board.move(3, 7); break;
-            case R.id.imageButton26: board.move(3, 8); break;
-            case R.id.imageButton27: board.move(3, 9); break;
-            case R.id.imageButton86: board.move(3, 10); break;
-            case R.id.imageButton87: board.move(3, 11); break;
-            case R.id.imageButton126: board.move(3, 12); break;
-            case R.id.imageButton127: board.move(3, 13); break;
-            case R.id.imageButton28: board.move(4, 1); break;
-            case R.id.imageButton29: board.move(4, 2); break;
-            case R.id.imageButton30: board.move(4, 3); break;
-            case R.id.imageButton31: board.move(4, 4); break;
-            case R.id.imageButton32: board.move(4, 5); break;
-            case R.id.imageButton33: board.move(4, 6); break;
-            case R.id.imageButton34: board.move(4, 7); break;
-            case R.id.imageButton35: board.move(4, 8); break;
-            case R.id.imageButton36: board.move(4, 9); break;
-            case R.id.imageButton88: board.move(4, 10); break;
-            case R.id.imageButton89: board.move(4, 11); break;
-            case R.id.imageButton128: board.move(4, 12); break;
-            case R.id.imageButton129: board.move(4, 13); break;
-            case R.id.imageButton37: board.move(5, 1); break;
-            case R.id.imageButton38: board.move(5, 2); break;
-            case R.id.imageButton39: board.move(5, 3); break;
-            case R.id.imageButton40: board.move(5, 4); break;
-            case R.id.imageButton41: board.move(5, 5); break;
-            case R.id.imageButton42: board.move(5, 6); break;
-            case R.id.imageButton43: board.move(5, 7); break;
-            case R.id.imageButton44: board.move(5, 8); break;
-            case R.id.imageButton45: board.move(5, 9); break;
-            case R.id.imageButton90: board.move(5, 10);break;
-            case R.id.imageButton91: board.move(5, 11); break;
-            case R.id.imageButton130: board.move(5, 12); break;
-            case R.id.imageButton131: board.move(5, 13); break;
-            case R.id.imageButton46: board.move(6, 1); break;
-            case R.id.imageButton47: board.move(6, 2); break;
-            case R.id.imageButton48: board.move(6, 3); break;
-            case R.id.imageButton49: board.move(6, 4); break;
-            case R.id.imageButton50: board.move(6, 5); break;
-            case R.id.imageButton51: board.move(6, 6); break;
-            case R.id.imageButton52: board.move(6, 7); break;
-            case R.id.imageButton53: board.move(6, 8); break;
-            case R.id.imageButton54: board.move(6, 9); break;
-            case R.id.imageButton92: board.move(6, 10); break;
-            case R.id.imageButton93: board.move(6, 11); break;
-            case R.id.imageButton132: board.move(6, 12); break;
-            case R.id.imageButton133: board.move(6, 13); break;
-            case R.id.imageButton55: board.move(7, 1); break;
-            case R.id.imageButton56: board.move(7, 2); break;
-            case R.id.imageButton57: board.move(7, 3); break;
-            case R.id.imageButton58: board.move(7, 4); break;
-            case R.id.imageButton59: board.move(7, 5); break;
-            case R.id.imageButton60: board.move(7, 6); break;
-            case R.id.imageButton61: board.move(7, 7); break;
-            case R.id.imageButton62: board.move(7, 8); break;
-            case R.id.imageButton63: board.move(7, 9); break;
-            case R.id.imageButton94: board.move(7, 10); break;
-            case R.id.imageButton95: board.move(7, 11); break;
-            case R.id.imageButton134: board.move(7, 12); break;
-            case R.id.imageButton135: board.move(7, 13); break;
-            case R.id.imageButton64: board.move(8, 1); break;
-            case R.id.imageButton65: board.move(8, 2); break;
-            case R.id.imageButton66: board.move(8, 3); break;
-            case R.id.imageButton67: board.move(8, 4); break;
-            case R.id.imageButton68: board.move(8, 5); break;
-            case R.id.imageButton69: board.move(8, 6); break;
-            case R.id.imageButton70: board.move(8, 7); break;
-            case R.id.imageButton71: board.move(8, 8); break;
-            case R.id.imageButton72: board.move(8, 9); break;
-            case R.id.imageButton96: board.move(8, 10); break;
-            case R.id.imageButton97: board.move(8, 11); break;
-            case R.id.imageButton136: board.move(8, 12); break;
-            case R.id.imageButton137: board.move(8, 13); break;
-            case R.id.imageButton73: board.move(9, 1); break;
-            case R.id.imageButton74: board.move(9, 2); break;
-            case R.id.imageButton75: board.move(9, 3); break;
-            case R.id.imageButton76: board.move(9, 4); break;
-            case R.id.imageButton77: board.move(9, 5);break;
-            case R.id.imageButton78: board.move(9, 6); break;
-            case R.id.imageButton79: board.move(9, 7); break;
-            case R.id.imageButton80: board.move(9, 8); break;
-            case R.id.imageButton81: board.move(9, 9); break;
-            case R.id.imageButton98: board.move(9, 10); break;
-            case R.id.imageButton99: board.move(9, 11); break;
-            case R.id.imageButton138: board.move(9, 12); break;
-            case R.id.imageButton139: board.move(9, 13); break;
-            case R.id.imageButton100: board.move(10, 1); break;
-            case R.id.imageButton101: board.move(10, 2); break;
-            case R.id.imageButton102: board.move(10, 3); break;
-            case R.id.imageButton103: board.move(10, 4); break;
-            case R.id.imageButton104: board.move(10, 5); break;
-            case R.id.imageButton105: board.move(10, 6); break;
-            case R.id.imageButton106: board.move(10, 7); break;
-            case R.id.imageButton107: board.move(10, 8); break;
-            case R.id.imageButton108: board.move(10, 9); break;
-            case R.id.imageButton109: board.move(10, 10);break;
-            case R.id.imageButton110: board.move(10, 11); break;
-            case R.id.imageButton140: board.move(10, 12); break;
-            case R.id.imageButton141: board.move(10, 13); break;
-            case R.id.imageButton111: board.move(11, 1); break;
-            case R.id.imageButton112: board.move(11, 2); break;
-            case R.id.imageButton113: board.move(11, 3); break;
-            case R.id.imageButton114: board.move(11, 4); break;
-            case R.id.imageButton115: board.move(11, 5); break;
-            case R.id.imageButton116: board.move(11, 6); break;
-            case R.id.imageButton117: board.move(11, 7); break;
-            case R.id.imageButton118: board.move(11, 8); break;
-            case R.id.imageButton119: board.move(11, 9); break;
-            case R.id.imageButton120: board.move(11, 10); break;
-            case R.id.imageButton121: board.move(11, 11); break;
-            case R.id.imageButton142: board.move(11, 12); break;
-            case R.id.imageButton143: board.move(11, 13); break;
-            case R.id.imageButton144: board.move(12, 1); break;
-            case R.id.imageButton145: board.move(12, 2); break;
-            case R.id.imageButton146: board.move(12, 3); break;
-            case R.id.imageButton147: board.move(12, 4); break;
-            case R.id.imageButton148: board.move(12, 5); break;
-            case R.id.imageButton149: board.move(12, 6); break;
-            case R.id.imageButton150: board.move(12, 7); break;
-            case R.id.imageButton151: board.move(12, 8); break;
-            case R.id.imageButton152: board.move(12, 9); break;
-            case R.id.imageButton153: board.move(12, 10); break;
-            case R.id.imageButton154: board.move(12, 11); break;
-            case R.id.imageButton155: board.move(12, 12); break;
-            case R.id.imageButton156: board.move(12, 13); break;
-            case R.id.imageButton157: board.move(13, 1); break;
-            case R.id.imageButton158: board.move(13, 2); break;
-            case R.id.imageButton159: board.move(13, 3); break;
-            case R.id.imageButton160: board.move(13, 4); break;
-            case R.id.imageButton161: board.move(13, 5); break;
-            case R.id.imageButton162: board.move(13, 6); break;
-            case R.id.imageButton163: board.move(13, 7); break;
-            case R.id.imageButton164: board.move(13, 8); break;
-            case R.id.imageButton165: board.move(13, 9); break;
-            case R.id.imageButton166: board.move(13, 10); break;
-            case R.id.imageButton167: board.move(13, 11); break;
-            case R.id.imageButton168: board.move(13, 12); break;
-            case R.id.imageButton169: board.move(13, 13); break;
+            case R.id.imageButton1: move(1, 1); break;
+            case R.id.imageButton2: move(1, 2); break;
+            case R.id.imageButton3: move(1, 3); break;
+            case R.id.imageButton4: move(1, 4); break;
+            case R.id.imageButton5: move(1, 5); break;
+            case R.id.imageButton6: move(1, 6); break;
+            case R.id.imageButton7: move(1, 7); break;
+            case R.id.imageButton8: move(1, 8); break;
+            case R.id.imageButton9: move(1, 9); break;
+            case R.id.imageButton82: move(1, 10); break;
+            case R.id.imageButton83: move(1, 11); break;
+            case R.id.imageButton122: move(1, 12); break;
+            case R.id.imageButton123: move(1, 13); break;
+            case R.id.imageButton10: move(2, 1); break;
+            case R.id.imageButton11: move(2, 2); break;
+            case R.id.imageButton12: move(2, 3); break;
+            case R.id.imageButton13: move(2, 4); break;
+            case R.id.imageButton14: move(2, 5); break;
+            case R.id.imageButton15: move(2, 6); break;
+            case R.id.imageButton16: move(2, 7); break;
+            case R.id.imageButton17: move(2, 8); break;
+            case R.id.imageButton18: move(2, 9); break;
+            case R.id.imageButton84: move(2, 10); break;
+            case R.id.imageButton85: move(2, 11); break;
+            case R.id.imageButton124: move(2, 12); break;
+            case R.id.imageButton125: move(2, 13); break;
+            case R.id.imageButton19: move(3, 1); break;
+            case R.id.imageButton20: move(3, 2); break;
+            case R.id.imageButton21: move(3, 3); break;
+            case R.id.imageButton22: move(3, 4); break;
+            case R.id.imageButton23: move(3, 5); break;
+            case R.id.imageButton24: move(3, 6); break;
+            case R.id.imageButton25: move(3, 7); break;
+            case R.id.imageButton26: move(3, 8); break;
+            case R.id.imageButton27: move(3, 9); break;
+            case R.id.imageButton86: move(3, 10); break;
+            case R.id.imageButton87: move(3, 11); break;
+            case R.id.imageButton126: move(3, 12); break;
+            case R.id.imageButton127: move(3, 13); break;
+            case R.id.imageButton28: move(4, 1); break;
+            case R.id.imageButton29: move(4, 2); break;
+            case R.id.imageButton30: move(4, 3); break;
+            case R.id.imageButton31: move(4, 4); break;
+            case R.id.imageButton32: move(4, 5); break;
+            case R.id.imageButton33: move(4, 6); break;
+            case R.id.imageButton34: move(4, 7); break;
+            case R.id.imageButton35: move(4, 8); break;
+            case R.id.imageButton36: move(4, 9); break;
+            case R.id.imageButton88: move(4, 10); break;
+            case R.id.imageButton89: move(4, 11); break;
+            case R.id.imageButton128: move(4, 12); break;
+            case R.id.imageButton129: move(4, 13); break;
+            case R.id.imageButton37: move(5, 1); break;
+            case R.id.imageButton38: move(5, 2); break;
+            case R.id.imageButton39: move(5, 3); break;
+            case R.id.imageButton40: move(5, 4); break;
+            case R.id.imageButton41: move(5, 5); break;
+            case R.id.imageButton42: move(5, 6); break;
+            case R.id.imageButton43: move(5, 7); break;
+            case R.id.imageButton44: move(5, 8); break;
+            case R.id.imageButton45: move(5, 9); break;
+            case R.id.imageButton90: move(5, 10);break;
+            case R.id.imageButton91: move(5, 11); break;
+            case R.id.imageButton130: move(5, 12); break;
+            case R.id.imageButton131: move(5, 13); break;
+            case R.id.imageButton46: move(6, 1); break;
+            case R.id.imageButton47: move(6, 2); break;
+            case R.id.imageButton48: move(6, 3); break;
+            case R.id.imageButton49: move(6, 4); break;
+            case R.id.imageButton50: move(6, 5); break;
+            case R.id.imageButton51: move(6, 6); break;
+            case R.id.imageButton52: move(6, 7); break;
+            case R.id.imageButton53: move(6, 8); break;
+            case R.id.imageButton54: move(6, 9); break;
+            case R.id.imageButton92: move(6, 10); break;
+            case R.id.imageButton93: move(6, 11); break;
+            case R.id.imageButton132: move(6, 12); break;
+            case R.id.imageButton133: move(6, 13); break;
+            case R.id.imageButton55: move(7, 1); break;
+            case R.id.imageButton56: move(7, 2); break;
+            case R.id.imageButton57: move(7, 3); break;
+            case R.id.imageButton58: move(7, 4); break;
+            case R.id.imageButton59: move(7, 5); break;
+            case R.id.imageButton60: move(7, 6); break;
+            case R.id.imageButton61: move(7, 7); break;
+            case R.id.imageButton62: move(7, 8); break;
+            case R.id.imageButton63: move(7, 9); break;
+            case R.id.imageButton94: move(7, 10); break;
+            case R.id.imageButton95: move(7, 11); break;
+            case R.id.imageButton134: move(7, 12); break;
+            case R.id.imageButton135: move(7, 13); break;
+            case R.id.imageButton64: move(8, 1); break;
+            case R.id.imageButton65: move(8, 2); break;
+            case R.id.imageButton66: move(8, 3); break;
+            case R.id.imageButton67: move(8, 4); break;
+            case R.id.imageButton68: move(8, 5); break;
+            case R.id.imageButton69: move(8, 6); break;
+            case R.id.imageButton70: move(8, 7); break;
+            case R.id.imageButton71: move(8, 8); break;
+            case R.id.imageButton72: move(8, 9); break;
+            case R.id.imageButton96: move(8, 10); break;
+            case R.id.imageButton97: move(8, 11); break;
+            case R.id.imageButton136: move(8, 12); break;
+            case R.id.imageButton137: move(8, 13); break;
+            case R.id.imageButton73: move(9, 1); break;
+            case R.id.imageButton74: move(9, 2); break;
+            case R.id.imageButton75: move(9, 3); break;
+            case R.id.imageButton76: move(9, 4); break;
+            case R.id.imageButton77: move(9, 5);break;
+            case R.id.imageButton78: move(9, 6); break;
+            case R.id.imageButton79: move(9, 7); break;
+            case R.id.imageButton80: move(9, 8); break;
+            case R.id.imageButton81: move(9, 9); break;
+            case R.id.imageButton98: move(9, 10); break;
+            case R.id.imageButton99: move(9, 11); break;
+            case R.id.imageButton138: move(9, 12); break;
+            case R.id.imageButton139: move(9, 13); break;
+            case R.id.imageButton100: move(10, 1); break;
+            case R.id.imageButton101: move(10, 2); break;
+            case R.id.imageButton102: move(10, 3); break;
+            case R.id.imageButton103: move(10, 4); break;
+            case R.id.imageButton104: move(10, 5); break;
+            case R.id.imageButton105: move(10, 6); break;
+            case R.id.imageButton106: move(10, 7); break;
+            case R.id.imageButton107: move(10, 8); break;
+            case R.id.imageButton108: move(10, 9); break;
+            case R.id.imageButton109: move(10, 10);break;
+            case R.id.imageButton110: move(10, 11); break;
+            case R.id.imageButton140: move(10, 12); break;
+            case R.id.imageButton141: move(10, 13); break;
+            case R.id.imageButton111: move(11, 1); break;
+            case R.id.imageButton112: move(11, 2); break;
+            case R.id.imageButton113: move(11, 3); break;
+            case R.id.imageButton114: move(11, 4); break;
+            case R.id.imageButton115: move(11, 5); break;
+            case R.id.imageButton116: move(11, 6); break;
+            case R.id.imageButton117: move(11, 7); break;
+            case R.id.imageButton118: move(11, 8); break;
+            case R.id.imageButton119: move(11, 9); break;
+            case R.id.imageButton120: move(11, 10); break;
+            case R.id.imageButton121: move(11, 11); break;
+            case R.id.imageButton142: move(11, 12); break;
+            case R.id.imageButton143: move(11, 13); break;
+            case R.id.imageButton144: move(12, 1); break;
+            case R.id.imageButton145: move(12, 2); break;
+            case R.id.imageButton146: move(12, 3); break;
+            case R.id.imageButton147: move(12, 4); break;
+            case R.id.imageButton148: move(12, 5); break;
+            case R.id.imageButton149: move(12, 6); break;
+            case R.id.imageButton150: move(12, 7); break;
+            case R.id.imageButton151: move(12, 8); break;
+            case R.id.imageButton152: move(12, 9); break;
+            case R.id.imageButton153: move(12, 10); break;
+            case R.id.imageButton154: move(12, 11); break;
+            case R.id.imageButton155: move(12, 12); break;
+            case R.id.imageButton156: move(12, 13); break;
+            case R.id.imageButton157: move(13, 1); break;
+            case R.id.imageButton158: move(13, 2); break;
+            case R.id.imageButton159: move(13, 3); break;
+            case R.id.imageButton160: move(13, 4); break;
+            case R.id.imageButton161: move(13, 5); break;
+            case R.id.imageButton162: move(13, 6); break;
+            case R.id.imageButton163: move(13, 7); break;
+            case R.id.imageButton164: move(13, 8); break;
+            case R.id.imageButton165: move(13, 9); break;
+            case R.id.imageButton166: move(13, 10); break;
+            case R.id.imageButton167: move(13, 11); break;
+            case R.id.imageButton168: move(13, 12); break;
+            case R.id.imageButton169: move(13, 13); break;
 
             case R.id.btnOk:
                 if (endGame){
                     dismissDialog(DIALOG_END);
                     pass.setText(getResources().getString(R.string.btn_new));
-                    scoring();
-                    if (bTotalScore > wTotalScore+komi)
+
+                    if (cordLast/1000 == 1)
+                        ncArr[(cordLast%1000)/100-1][cordLast%100-1].setImageBitmap(bBitmap);
+                    else if (cordLast/1000 == 2)
+                        ncArr[(cordLast%1000)/100-1][cordLast%100-1].setImageBitmap(wBitmap);
+
+                    if (board.getBScore() > board.getWScore())
                         status.setText(R.string.victory_black);
-                    else if (bTotalScore < wTotalScore+komi)
+                    else if (board.getBScore() < board.getWScore())
                         status.setText(R.string.victory_white);
                     else
                         status.setText(R.string.draw);
@@ -341,16 +537,20 @@ public class Game extends Activity implements View.OnClickListener {
 
             case R.id.pass:
                 if(pass.getText() == getResources().getString(R.string.btn_pass)) {
-                    if (Cord != 0) {
-                        intArr[Cord / 100][Cord % 100] = 0;
-                        if (intArrTerritory[Cord / 100][Cord % 100] == 0)
-                            ncArr[Cord / 100 - 1][Cord % 100 - 1].setImageBitmap(none);
-                        else if (intArrTerritory[Cord / 100][Cord % 100] == 1)
-                            ncArr[Cord / 100 - 1][Cord % 100 - 1].setImageBitmap(bDot);
+                    /*if (cord != 0) {
+                        intArr[cord / 100][cord % 100] = 0;
+                        if (intArrTerritory[cord / 100][cord % 100] == 0)
+                            ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(none);
+                        else if (intArrTerritory[cord / 100][cord % 100] == 1)
+                            ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(bDot);
                         else
-                            ncArr[Cord / 100 - 1][Cord % 100 - 1].setImageBitmap(wDot);
+                            ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(wDot);
                     }
-                    Cord = 0;
+                    cord = 0;*/
+                    if (cord>0)
+                        ncArr[cord/100-1][cord%100-1].setImageBitmap(none);
+                    cord = 0;
+                    board.pass();
                     pass.setText(getResources().getString(R.string.btn_end));
                     passCheck = false;
                     if (m == true) {
@@ -366,29 +566,19 @@ public class Game extends Activity implements View.OnClickListener {
                     showDialog(DIALOG_END);
                 }
                 else{
+                    board.newGame();
                     status.setText(R.string.move_black);
+                    cordLast = 0;
                     m = false;
-                    zone = 0;
-                    zone2 = 0;
-                    wScore = 0;
-                    bScore = 0;
-                    ruleKo[0] = 0;
-                    ruleKo[1] = 0;
                     textBlack.setText(getResources().getString(R.string.score_black) + " 0");
-                    textWhite.setText(getResources().getString(R.string.score_white) + " 0");
+                    if (komi == 0)
+                        textWhite.setText(getResources().getString(R.string.score_white) +  " 0");
+                    else
+                        textWhite.setText(getResources().getString(R.string.score_white) +  " " + komi);
                     for (int i=1; i < n+1; i++){
                         for (int j=1; j < n+1; j++) {
-                            intArr[i][j] = 0;
                             ncArr[i - 1][j - 1].setImageBitmap(none);
                             ncArr[i - 1][j - 1].setEnabled(true);
-                        }
-                    }
-                    for (int i = 0; i < n+2; i++){
-                        for (int j = 0; j < n+2; j++){
-                            if (i==0 || j==0 || i==n+1 || j==n+1)
-                                intArrTerritory[i][j] = -1;
-                            else
-                                intArrTerritory[i][j] = 0;
                         }
                     }
                 }
@@ -399,7 +589,7 @@ public class Game extends Activity implements View.OnClickListener {
                 break;
         }
 
-        int[][] intArr = board.getBoard();
+        /*int[][] intArr = board.getBoard();
         for (int i = 0; i < n; i++){
             for (int j = 0; j < n; j++){
                 if (intArr[i][j]/10000000 == 1)
@@ -409,7 +599,7 @@ public class Game extends Activity implements View.OnClickListener {
                 else
                     ncArr[i][j].setImageBitmap(none);
             }
-        }
+        }*/
 
     }
 
@@ -449,7 +639,7 @@ public class Game extends Activity implements View.OnClickListener {
     // наличие или отсутствие территории у группы;
     // номер группы, окружайщей территорию;
     // номер объединенной группы;
-    public void move(int i, int j) {
+    /*public void move(int i, int j) {
         if (intArr[i][j] == 0 || Cord/100 == i && Cord%100 == j) {
             if (!m) {
                 if (Cord/100 != i || Cord%100 != j){
@@ -631,7 +821,6 @@ public class Game extends Activity implements View.OnClickListener {
         byte rule = 0;
         if (intArr[i][j] / 10000000 != intArr[ii][jj] / 10000000 && intArr[i][j] / 10000000 != 0) {
 
-            //////////////////////********************
             oldzone = intArr[i][j] % 1000;
             for (int i1 = 1; i1 < n+1; i1++) {
                 for (int j1 = 1; j1 < n+1; j1++) {
@@ -733,10 +922,10 @@ public class Game extends Activity implements View.OnClickListener {
             else if (!move)
                 intArr[ii][jj] += zone - oldzone + zone2*1000 - oldzone2*1000;
         }
-    }
+    }*/
 
     //Подсчет очков и территорий
-    public void scoring(){
+    /*public void scoring(){
         int[][] intArr1 = new int[n+2][n+2];
         int[][] intArr2 = new int[n+2][n+2];
         int wStrategicScore = 0, bStrategicScore = 0;
@@ -957,10 +1146,8 @@ public class Game extends Activity implements View.OnClickListener {
                         for (int i1 = 1; i1 < n+1; i1++) {
                             for (int j1 = 1; j1 < n+1; j1++) {
                                 if (intArr2[i1][j1] == 4 && intArr2[i1][j1 - 1] > 0 && intArr2[i1][j1 - 1] < 4 && ((intArr1[i1][j1]%10000000)/1000000 != 1 ||
-                                        intArr1[i1][j1]/10000000 != 0 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000)/* ||
-                                        intArr2[i1][j1] == 4 && intArrTerritory[i1][j1 - 1] != intArr1[i][j]/10000000 && intArrTerritory[i1][j1 - 1] > 0 &&
-                                                intArrTerritory[i1][j1] == 0 && intArr1[i1][j1]/10000000 > 0 */||
-                                        (intArr1[i1][j1]%10000000)/1000000 >= 1 && intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000 /*&& mix*/ &&
+                                        intArr1[i1][j1]/10000000 != 0 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000) ||
+                                        (intArr1[i1][j1]%10000000)/1000000 >= 1 && intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000  &&
                                                 (i1 == 1 || j1 == 1 || i1 == n || j1 == n)) {
                                     intArr2[i1][j1] = 1;
                                 }
@@ -970,10 +1157,8 @@ public class Game extends Activity implements View.OnClickListener {
                         for (int j1 = 1; j1 < n+1; j1++) {
                             for (int i1 = 1; i1 < n+1; i1++) {
                                 if (intArr2[i1][j1] == 4 && intArr2[i1 - 1][j1] > 0 && intArr2[i1 - 1][j1] < 4 && ((intArr1[i1][j1]%10000000)/1000000 != 1 ||
-                                        intArr1[i1][j1]/10000000 != 0 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000) /*||
-                                        intArr2[i1][j1] == 4 && intArrTerritory[i1 - 1][j1] != intArr1[i][j]/10000000 && intArrTerritory[i1 - 1][j1] > 0 &&
-                                                intArrTerritory[i1][j1] == 0 && intArr1[i1][j1]/10000000 > 0*/ ||
-                                        (intArr1[i1][j1]%10000000)/1000000 >= 1  && intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000 /*&& mix*/ &&
+                                        intArr1[i1][j1]/10000000 != 0 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000) ||
+                                        (intArr1[i1][j1]%10000000)/1000000 >= 1  && intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000  &&
                                                 (i1 == 1 || j1 == 1 || i1 == n || j1 == n)) {
                                     intArr2[i1][j1] = 1;
                                 }
@@ -983,10 +1168,8 @@ public class Game extends Activity implements View.OnClickListener {
                         for (int i1 = 1; i1 < n+1; i1++) {
                             for (int j1 = n; j1 > 0; j1--) {
                                 if (intArr2[i1][j1] == 4 && intArr2[i1][j1+1] > 0 && intArr2[i1][j1+1] < 4 && ((intArr1[i1][j1]%10000000)/1000000 != 1 ||
-                                        intArr1[i1][j1]/10000000 != 0 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000) /*||
-                                        intArr2[i1][j1] == 4 && intArrTerritory[i1][j1 + 1] != intArr1[i][j]/10000000 && intArrTerritory[i1][j1 + 1] > 0 &&
-                                                intArrTerritory[i1][j1] == 0 && intArr1[i1][j1]/10000000 > 0*/ ||
-                                        (intArr1[i1][j1]%10000000)/1000000 >= 1 && intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000 /*&& mix*/ &&
+                                        intArr1[i1][j1]/10000000 != 0 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000) ||
+                                        (intArr1[i1][j1]%10000000)/1000000 >= 1 && intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000  &&
                                                 (i1 == 1 || j1 == 1 || i1 == n || j1 == n)) {
                                     intArr2[i1][j1] = 1;
                                 }
@@ -996,10 +1179,8 @@ public class Game extends Activity implements View.OnClickListener {
                         for (int j1 = 1; j1 < n+1; j1++) {
                             for (int i1 = n; i1 > 0; i1--) {
                                 if (intArr2[i1][j1] == 4 && intArr2[i1 + 1][j1] > 0 && intArr2[i1 + 1][j1] < 4 && ((intArr1[i1][j1]%10000000)/1000000 != 1 ||
-                                        intArr1[i1][j1]/10000000 != 0 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000) /*||
-                                        intArr2[i1][j1] == 4 && intArrTerritory[i1 + 1][j1] != intArr1[i][j]/10000000 && intArrTerritory[i1 + 1][j1] > 0 &&
-                                                intArrTerritory[i1][j1] == 0 && intArr1[i1][j1]/10000000 > 0 */||
-                                        (intArr1[i1][j1]%10000000)/1000000 >= 1 && intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000 /*&& mix*/ &&
+                                        intArr1[i1][j1]/10000000 != 0 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000) ||
+                                        (intArr1[i1][j1]%10000000)/1000000 >= 1 && intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000  &&
                                                 (i1 == 1 || j1 == 1 || i1 == n || j1 == n)) {
                                     intArr2[i1][j1] = 1;
                                 }
@@ -1126,6 +1307,6 @@ public class Game extends Activity implements View.OnClickListener {
             textWhite.setText(getResources().getString(R.string.score_white) + " " + wTotalScore);
         textBlack.setText(getResources().getString(R.string.score_black) + " " +bTotalScore);
 
-    }
+    }*/
 
 }
