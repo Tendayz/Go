@@ -693,4 +693,17 @@ public class Board {
             return false;
     }
 
+    public void botScoring() {
+        int wStrategicScore = 0, bStrategicScore = 0;
+        for (int i = 1; i < n + 1; i++) {
+            for (int j = 1; j < n + 1; j++) {
+                if (intArr[i][j] == 0 && (intArr[i - 1][j] / 10000000 == 1 || intArr[i + 1][j] / 10000000 == 1 || intArr[i][j + 1] / 10000000 == 1 || intArr[i][j - 1] / 10000000 == 1))
+                    bStrategicScore++;
+                else if (intArr[i][j] == 0 && (intArr[i - 1][j] / 10000000 == 2 || intArr[i + 1][j] / 10000000 == 2 || intArr[i][j + 1] / 10000000 == 2 || intArr[i][j - 1] / 10000000 == 2))
+                    wStrategicScore++;
+            }
+        }
+        wTotalScore = wScore+wStrategicScore;
+        bTotalScore = bScore+bStrategicScore;
+    }
 }

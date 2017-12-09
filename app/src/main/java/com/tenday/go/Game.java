@@ -137,27 +137,34 @@ public class Game extends Activity implements View.OnClickListener {
         }
     }
 
+    public class botThread extends Thread {
+
+        int bestMove;
+        @Override
+        public void run(){
+            TreeBot bot = new TreeBot(board);
+            bestMove = bot.bot(bot);
+            if (bestMove>2) {
+                runOnUiThread(new Runnable() {
+                    public void run() {
+                        move(bestMove / 100, bestMove % 100);
+                        move(bestMove / 100, bestMove % 100);
+                    }
+
+                });
+            }
+            else if(m)
+                m = false;
+            else
+                m = true;
+
+        }
+    }
+
     public void move(int i, int j){
         if (cord == i * 100 + j) {
             System.out.println("11111111111111111");
             board.move(i, j);
-
-            if (cordLast / 1000 == 1)
-                ncArr[(cordLast % 1000) / 100 - 1][cordLast % 100 - 1].setImageBitmap(bBitmap);
-            else if (cordLast / 1000 == 2)
-                ncArr[(cordLast % 1000) / 100 - 1][cordLast % 100 - 1].setImageBitmap(wBitmap);
-
-            if (!m) {
-                cordLast = 1000 + i * 100 + j;
-                ncArr[i - 1][j - 1].setImageBitmap(bLast);
-                m = true;
-                status.setText(R.string.move_white);
-            } else {
-                cordLast = 2000 + i * 100 + j;
-                ncArr[i - 1][j - 1].setImageBitmap(wLast);
-                m = false;
-                status.setText(R.string.move_black);
-            }
 
             cord = 0;
             intArrTerritory = board.scoring();
@@ -182,12 +189,33 @@ public class Game extends Activity implements View.OnClickListener {
                 }
             }
 
+            if (!m) {
+                cordLast = 1000 + i * 100 + j;
+                if (board.intArrTerritory[i][j] == 2)
+                    ncArr[i - 1][j - 1].setImageBitmap(wDotOnBLast);
+                else
+                    ncArr[i - 1][j - 1].setImageBitmap(bLast);
+                m = true;
+                status.setText(R.string.move_white);
+            } else {
+                cordLast = 2000 + i * 100 + j;
+                if (board.intArrTerritory[i][j] == 1)
+                    ncArr[i - 1][j - 1].setImageBitmap(bDotOnWLast);
+                else
+                    ncArr[i - 1][j - 1].setImageBitmap(wLast);
+                m = false;
+                status.setText(R.string.move_black);
+            }
+
             //BOT'S TEST
-            if (board.zone > 0) {
+            /*if (board.zone > 0) {
                 TreeBot bot = new TreeBot(board);
                 int bestMove = bot.bot(bot);
                 System.out.println("BEEEEEEEEEEEEEEEEESTTTTTTTTTTT MOOOOOOOOOVEEEEEEEEEEEE!!!!!!!!!!!!   -   " + bestMove);
-            }
+            }*/
+            //if (m){
+            new botThread().start();
+            //}
 
             //BOT'S TEST
 

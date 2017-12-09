@@ -15,6 +15,7 @@ public class TreeBot {
 
     public Node root;
     public Node parent = null;
+    int n;
 
     private static Random random = new Random();
 
@@ -64,6 +65,7 @@ public class TreeBot {
 
 
     public TreeBot(Board board) {
+        n = board.n;
         root = new Node();
         root.data = asBoard(board);
         root.children = new ArrayList<Node>();
@@ -87,8 +89,13 @@ public class TreeBot {
     }
 
     public int bot(TreeBot root) {
-        Board board1 = asBoard(root.getBoard()), board2;
-        int n = board1.n, i, j;
+        Board board1, board2;
+        if (root.parent == null)
+            board1 = asBoard(root.getBoard());
+        else
+            board1 = root.getBoard();
+
+        int i, j;
         int winner;
 
         int[] avMoves = new int[n * n];
@@ -106,18 +113,23 @@ public class TreeBot {
 
         //Если доступных ходов нет, то возвращаем победителя
         if (k == 0) {
-            board1.scoring();
-            if (board1.getBScore() > board1.getWScore()) {
+            if (!board1.passCheck)
+                board1.pass();
+            else
+                board1.botScoring();
+
+            if (board1.getBScore() > board1.getWScore() && board1.passCheck) {
                 return 1;
-            } else if (board1.getBScore() < board1.getWScore()) {
+            } else if (board1.getBScore() < board1.getWScore() && board1.passCheck) {
                 return 2;
             } else
                 return 0;
         }
 
-
         //Зарандомленные доступные ходы
-        int[] rand = generateRandom(k);
+        int[] rand;
+        //if (root.parent == null) //Временно
+            //rand = generateRandom(k);
 
         //Кол-во партий
         int amount = 0;
@@ -126,21 +138,25 @@ public class TreeBot {
         int movePriority[] = new int[k];
 
         //Инициализация
-        while (amount < 1000){ //В данном случае, 5000 раз будет выполняться только в самом верху,
-            // так как ниже есть проверка на самый верхний узел, иначе return, и, следовательно, выход из цикла
-            for (i = 0; i < k; i++) {
-                board2 = asBoard(board1);
-                board2.move(avMoves[rand[i]] / 100, avMoves[rand[i]] % 100);
-                if (root.parent != null)
-                    return bot(root.addChild(board2)); //Добавит новый узел в дерево и вызовит функцию бот с этим узлом в качестве аргумента. И возвратит все этого вышестоящей функции, если имеется
-                else if (root.parent == null){
+        if (root.parent == null) {
+            long time = System.currentTimeMillis();
+            rand = generateRandom(k); //Временно
+            while (System.currentTimeMillis() - time < 2000) { //В данном случае, 5000 раз будет выполняться только в самом верху,
+                // так как ниже есть проверка на самый верхний узел, иначе return, и, следовательно, выход из цикла
+                for (i = 0; i < k; i++) {
+                    board2 = asBoard(board1);
+                    board2.move(avMoves[rand[i]] / 100, avMoves[rand[i]] % 100);
                     amount++;
                     winner = bot(root.addChild(board2));
                     if (board1.getMovesColor() == winner)
                         movePriority[rand[i]]++;
                 }
-
             }
+        }
+        else{
+            int tmp = Math.abs(random.nextInt()) % k;
+            board1.move(avMoves[tmp] / 100, avMoves[tmp] % 100);
+            return bot(root.addChild(board1)); //Добавит новый узел в дерево и вызовит функцию бот с этим узлом в качестве аргумента. И возвратит все этого вышестоящей функции, если имеется
         }
 
         //Определяем самый приоритетный ход
@@ -151,10 +167,6 @@ public class TreeBot {
                 bestPriority = movePriority[i];
                 bestMoveI = i;
             }
-        }
-
-        for (i = 0; i < k; i++){
-            System.out.println("movePriority of "+avMoves[i]+" = "+movePriority[i]);
         }
 
             return avMoves[bestMoveI];
