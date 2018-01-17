@@ -22,12 +22,12 @@ public class Layout extends LinearLayout {
         int size = getMeasuredWidth();
         int id = getId();
         if (R.id.desk9 == id)
-            setMeasuredDimension(size, size+(9-(size-2*(int)(0.032*getMeasuredWidth()))%9)%9);
+            setMeasuredDimension(size, size+(9-(size-2*(int)(0.031*getMeasuredWidth()))%9)%9);
         else if (R.id.desk11 == id)
-            setMeasuredDimension(size, size+(11-(size-2*(int)(0.032*getMeasuredWidth()))%11)%11);
+            setMeasuredDimension(size, size+(11-(size-2*(int)(0.031*getMeasuredWidth()))%11)%11);
         else if (R.id.desk13 == id)
-            setMeasuredDimension(size, size+(13-(size-2*(int)(0.032*getMeasuredWidth()))%13)%13);
-        size = (int)(0.032*getMeasuredWidth());
+            setMeasuredDimension(size, size+(13-(size-2*(int)(0.031*getMeasuredWidth()))%13)%13);
+        size = (int)(0.031*getMeasuredWidth());
         setPadding(size,size,size,0);
     }
 }

@@ -17,19 +17,14 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.util.Log;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-
-
 public class Game extends Activity implements View.OnClickListener {
     Bitmap bBitmap, wBitmap, bpBitmap, wpBitmap, bDot, wDot, wDotOnB, bDotOnW, bLast, wLast, wDotOnBLast, bDotOnWLast, none;
     ImageButton[][] ncArr;
     Button btnOk, btnCancel;
     private int[][] intArr, intArrTerritory;
     int ruleKo[];
-    boolean m = false, passCheck = true, move = false, checkMove = false, checkMove2 = false, endGame, bot;
-    int zone = 0, zone2 = 0, oldzone = 0, oldzone2 = 0, cord = 0, cordLast = 0, bScore = 0, wScore, bTotalScore = 0, wTotalScore = 0;
+    boolean m = false, passCheck = true, endGame, bot, botColor=false, testBot = false;
+    int cord = 0, cordLast = 0;
     float komi;
     private static final String TAG = "myLogs";
     TextView status, textBlack, textWhite, pass, menu, title, text;
@@ -38,8 +33,56 @@ public class Game extends Activity implements View.OnClickListener {
     final int DIALOG_END = 2;
     int n;
 
-    private Board board;
+    public static final String [] patterns = {
+            "XOX...???",
+            "?.X?.O?.X",
+            "???...XOX",
+            "X.?O.?X.?",
 
+            "XO....?.?",
+            "?.X..O?..",
+            "?.?....OX",
+            "..?O..X.?",
+
+            "XO?X..x.?",
+            "xXX..O?.?",
+            "?.x..X?OX",
+            "?.?O..XXx",
+
+            ".O.X.....",
+            ".X...O...",
+            ".....X.O.",
+            "...O...X.",
+
+            "XO?O.o?o?",
+            "?OXo.O?o?",
+            "?o?o.O?OX",
+            "?o?O.oXO?",
+
+            "XO?O.X???",
+            "?OX?.O?X?",
+            "???X.O?OX",
+            "?X?Ox?XO?",
+
+            "?X?O.Oooo",
+            "oO?o.XoO?",
+            "oooO.O?X?",
+            "?OoX.o?Oo",
+
+            "OX?o.O???",
+            "?oO?.X?O?",
+            "???O.o?XO",
+            "?O?X.?Oo?"
+    };
+
+    public float getKomi(){
+        return komi;
+    }
+
+    int kolvoHodov;
+
+
+    private Board board;
     SoundPool sp;
     int soundIdClick;
 
@@ -52,6 +95,10 @@ public class Game extends Activity implements View.OnClickListener {
         komi = intent.getFloatExtra("wScore", 0);
         Log.d(TAG, "komi="+komi);
         Log.d(TAG, "n="+n);
+        komi=0.5f;
+        //System.out.println(patterns[0].charAt());
+
+        kolvoHodov = 0;
 
         //sp = new SoundPool(1, AudioManager.STREAM_MUSIC, 0);
         //sp.setOnLoadCompleteListener(this);
@@ -135,6 +182,9 @@ public class Game extends Activity implements View.OnClickListener {
                 ncArr[i][j].setOnClickListener(this);
             }
         }
+
+        if (bot && botColor == m || testBot)
+            new botThread().start();
     }
 
     public class botThread extends Thread {
@@ -142,218 +192,135 @@ public class Game extends Activity implements View.OnClickListener {
         int bestMove;
         @Override
         public void run(){
-            TreeBot bot = new TreeBot(board);
-            bestMove = bot.bot(bot);
+            runOnUiThread(new Runnable() {
+                              public void run() {
+                                  pass.setEnabled(false);
+                              }
+                          });
+
+            runOnUiThread(new Runnable() {
+                public void run() {
+                   for (int i=1; i < n+1; i++)
+                      for (int j=1; j < n+1; j++)
+                         ncArr[i - 1][j - 1].setEnabled(false);
+                }
+
+            });
+
+            bestMove = board.UCTSearch(10000);
             if (bestMove>2) {
                 runOnUiThread(new Runnable() {
                     public void run() {
                         move(bestMove / 100, bestMove % 100);
                         move(bestMove / 100, bestMove % 100);
+
+                        for (int i = 1; i < n + 1; i++)
+                            for (int j = 1; j < n + 1; j++)
+                                ncArr[i - 1][j - 1].setEnabled(true);
+
                     }
 
                 });
             }
-            else if(m)
-                m = false;
-            else
-                m = true;
+            else{
+                runOnUiThread(new Runnable() {
+                    public void run() {
+                        //pass();
+
+                        if (!board.endGame)
+                            for (int i = 1; i < n + 1; i++)
+                                for (int j = 1; j < n + 1; j++)
+                                    ncArr[i - 1][j - 1].setEnabled(true);
+
+                    }
+
+                });
+
+            }
+
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    pass.setEnabled(true);
+                }
+            });
 
         }
     }
 
-    public void move(int i, int j){
-        if (cord == i * 100 + j) {
-            System.out.println("11111111111111111");
+    public void move(int i, int j) {
+
+        if (cord == i*100+j) {
             board.move(i, j);
 
             cord = 0;
+            if (!m) {
+                ncArr[i-1][j-1].setImageBitmap(bLast);
+                cordLast = 10000 + i * 100 + j;
+                m = true;
+                status.setText(R.string.move_white);
+            } else {
+                ncArr[i-1][j-1].setImageBitmap(wLast);
+                cordLast = 20000 + i * 100 + j;
+                m = false;
+                status.setText(R.string.move_black);
+            }
             intArrTerritory = board.scoring();
+
+            textBlack.setText(getResources().getString(R.string.score_black) + board.bTotalScore);
+            if (komi!=0)
+                textWhite.setText(getResources().getString(R.string.score_white) + (board.wTotalScore+komi));
+            else
+                textWhite.setText(getResources().getString(R.string.score_white) + board.wTotalScore);
+
             intArr = board.getBoard();
-            for (int i1 = 0; i1 < n; i1++) {
-                for (int j1 = 0; j1 < n; j1++) {
-                    if (intArrTerritory[i1 + 1][j1 + 1] == 1 && intArr[i1 + 1][j1 + 1] == 0)
-                        ncArr[i1][j1].setImageBitmap(bDot);
-                    else if (intArrTerritory[i1 + 1][j1 + 1] == 1 && intArr[i1 + 1][j1 + 1]/10000000 == 2)
-                        ncArr[i1][j1].setImageBitmap(bDotOnW);
-                    else if (intArrTerritory[i1 + 1][j1 + 1] == 2 && intArr[i1 + 1][j1 + 1]/10000000 == 0)
-                        ncArr[i1][j1].setImageBitmap(wDot);
-                    else if (intArrTerritory[i1 + 1][j1 + 1] == 2 && intArr[i1 + 1][j1 + 1]/10000000 == 1)
-                        ncArr[i1][j1].setImageBitmap(wDotOnB);
-                    else if (1000 + i1 * 100 + j1 != cordLast && intArr[i1 + 1][j1 + 1]/10000000 == 1)
-                        ncArr[i1][j1].setImageBitmap(bBitmap);
-                    else if (1000 + i1 * 100 + j1 != cordLast && intArr[i1 + 1][j1 + 1]/10000000 == 2)
-                        ncArr[i1][j1].setImageBitmap(wBitmap);
-                    else if (intArr[i1 + 1][j1 + 1] == 0 && intArrTerritory[i1 + 1][j1 + 1] == 0)
-                        ncArr[i1][j1].setImageBitmap(none);
+            for (int i1 = 1; i1 < n+1; i1++) {
+                for (int j1 = 1; j1 < n+1; j1++) {
+                    if (intArrTerritory[i1][j1] == 1 && intArr[i1][j1] == 0)
+                        ncArr[i1-1][j1-1].setImageBitmap(bDot);
+                    else if (intArrTerritory[i1][j1] == 1 && intArr[i1][j1]/10000000 == 2)
+                        ncArr[i1-1][j1-1].setImageBitmap(bDotOnW);
+                    else if (intArrTerritory[i1][j1] == 2 && intArr[i1][j1] == 0)
+                        ncArr[i1-1][j1-1].setImageBitmap(wDot);
+                    else if (intArrTerritory[i1][j1] == 2 && intArr[i1][j1]/10000000 == 1)
+                        ncArr[i1-1][j1-1].setImageBitmap(wDotOnB);
+                    else if (10000 + i1 * 100 + j1 != cordLast && intArr[i1][j1]/10000000 == 1)
+                        ncArr[i1-1][j1-1].setImageBitmap(bBitmap);
+                    else if (20000 + i1 * 100 + j1 != cordLast && intArr[i1][j1]/10000000 == 2)
+                        ncArr[i1-1][j1-1].setImageBitmap(wBitmap);
+                    else if (intArr[i1][j1] == 0 && intArrTerritory[i1][j1] == 0)
+                        ncArr[i1-1][j1-1].setImageBitmap(none);
 
                 }
             }
 
-            if (!m) {
-                cordLast = 1000 + i * 100 + j;
-                if (board.intArrTerritory[i][j] == 2)
-                    ncArr[i - 1][j - 1].setImageBitmap(wDotOnBLast);
-                else
-                    ncArr[i - 1][j - 1].setImageBitmap(bLast);
-                m = true;
-                status.setText(R.string.move_white);
-            } else {
-                cordLast = 2000 + i * 100 + j;
-                if (board.intArrTerritory[i][j] == 1)
-                    ncArr[i - 1][j - 1].setImageBitmap(bDotOnWLast);
-                else
-                    ncArr[i - 1][j - 1].setImageBitmap(wLast);
-                m = false;
-                status.setText(R.string.move_black);
-            }
-
-            //BOT'S TEST
-            /*if (board.zone > 0) {
-                TreeBot bot = new TreeBot(board);
-                int bestMove = bot.bot(bot);
-                System.out.println("BEEEEEEEEEEEEEEEEESTTTTTTTTTTT MOOOOOOOOOVEEEEEEEEEEEE!!!!!!!!!!!!   -   " + bestMove);
-            }*/
-            //if (m){
-            new botThread().start();
-            //}
-
-            //BOT'S TEST
-
-            if (komi == 0)
-                textWhite.setText(getResources().getString(R.string.score_white) + " " + (int)(board.getWScore()));
-            else
-                textWhite.setText(getResources().getString(R.string.score_white) + " " + (board.getWScore()));
-            textBlack.setText(getResources().getString(R.string.score_black) + " " + board.getBScore());
-
             pass.setText(getResources().getString(R.string.btn_pass));
 
-        } else if (cord != i * 100 + j && board.checkMove(i, j)) {
-            System.out.println("22222222222222222222");
+            kolvoHodov++;
+
+            //BOT TEST
+            //if (kolvoHodov > 0 /*&& kolvoHodov < 2*/)
+                //new botThread().start();
+
+            if (bot && botColor == m && kolvoHodov > 0 || testBot)
+                new botThread().start();
+            //BOT TEST
+
+        } else if (cord != i * 100 + j && board.checkMove(i,j)) {
             if (cord != 0) {
-                if (intArrTerritory[cord / 100][cord % 100] == 0)
-                    ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(none);
-                else if (intArrTerritory[cord / 100][cord % 100] == 1)
-                    ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(bDot);
-                else if (intArrTerritory[cord / 100][cord % 100] == 2)
-                    ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(wDot);
+                ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(none);
             }
             cord = i * 100 + j;
             if (m)
                 ncArr[i - 1][j - 1].setImageBitmap(wpBitmap);
             else
                 ncArr[i - 1][j - 1].setImageBitmap(bpBitmap);
-        } else if (cord != i * 100 + j && !board.checkMove(i, j)) {
-
-            for (int i1 = 1; i1 < n+1; i1++){
-                for (int j1 = 1; j1 < n+1; j1++){
-                    System.out.print(intArr[i1][j1]+" ");
-                }
-                System.out.println();
-            }
-
-            System.out.println("33333333333333333333 intArr[i][j] = "+intArr[i][j]);
-            if (cord != 0) {
-                if (intArrTerritory[cord / 100][cord % 100] == 0)
-                    ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(none);
-                else if (intArrTerritory[cord / 100][cord % 100] == 1)
-                    ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(bDot);
-                else if (intArrTerritory[cord / 100][cord % 100] == 2)
-                    ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(wDot);
-            }
-            cord = 0;
+        } else if (cord != 0 && cord != i * 100 + j && !board.checkMove(i,j)) {
+            ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(none);
         }
-
     }
 
-    private static Random random = new Random();
+    //}
 
-    static int[] generateRandom(int k) {
-        int [] arr = new int[k];
-        int tmp, i = 0, j;
-        boolean addElement;
-        while(i < k){
-            tmp = Math.abs(random.nextInt()) % k;
-            addElement = true;
-            for (j = 0; j < i; j++){
-                if (arr[j] == tmp)
-                    addElement = false;
-            }
-
-            if (addElement){
-                arr[i] = tmp;
-                i++;
-            }
-        }
-        return arr;
-    }
-
-    public int bot(TreeBot root) {
-        Board board = root.getBoard(), board1;
-        int /*n = board.getSize(),*/ i, j;
-        int winner;
-
-        int[] avMoves = new int[n * n];
-        int k = 0;
-
-        //Определяем доступные ходы и записываем их в массив avMoves
-        /*for (i = 1; i < n+1; i++) {
-            for (j = 1; j < n+1; j++) {
-                if (board.checkMove(i, j) && board.checkEye(i, j)) {
-                    avMoves[k] = i * 100 + j;
-                    k++;
-                }
-            }
-        }*/
-
-        //Если доступных ходов нет, то возвращаем победителя
-        if (k == 0) {
-            board.scoring();
-            if (board.getBScore() > board.getWScore()) {
-                return 1;
-            } else if (board.getBScore() < board.getWScore()) {
-                return 2;
-            } else
-                return 0;
-        }
-
-
-        //Зарандомленные доступные ходы
-        int[] rand = generateRandom(k);
-
-        //Кол-во партий
-        int amount = 0;
-
-        //Приоритетность ходов
-        int movePriority[] = new int[k];
-
-        //Инициализация
-        while (amount < 10){ //В данном случае, 5000 раз будет выполняться только в самом верху,
-            // так как ниже есть проверка на самый верхний узел, иначе return, и, следовательно, выход из цикла
-            for (i = 0; i < k; i++) {
-                board1 = board;
-                board1.move(avMoves[rand[i]] / 100, avMoves[rand[i]] % 100);
-                if (root.parent != null)
-                    return bot(root.addChild(board1)); //Добавит новый узел в дерево и вызовит функцию бот с этим узлом в качестве аргумента. И возвратит все этого вышестоящей функции, если имеется
-                else if (root.parent == null){
-                    amount++;
-                    winner = bot(root.addChild(board1));
-                    if (board.getMovesColor() == winner)
-                        movePriority[rand[i]]++;
-                }
-
-            }
-        }
-
-        //Определяем самый приоритетный ход
-        int bestMoveI = 0;
-        for (i=0; i<k; i++){
-            if (movePriority[i] > bestMoveI) {
-                bestMoveI = movePriority[i];
-            }
-        }
-
-        return avMoves[bestMoveI];
-    }
 
     @Override
     public void onClick(View v) {
@@ -528,88 +495,19 @@ public class Game extends Activity implements View.OnClickListener {
             case R.id.imageButton168: move(13, 12); break;
             case R.id.imageButton169: move(13, 13); break;
 
+            case R.id.pass:
+                pass();
+                break;
+
             case R.id.btnOk:
-                if (endGame){
-                    dismissDialog(DIALOG_END);
-                    pass.setText(getResources().getString(R.string.btn_new));
-
-                    if (cordLast/1000 == 1)
-                        ncArr[(cordLast%1000)/100-1][cordLast%100-1].setImageBitmap(bBitmap);
-                    else if (cordLast/1000 == 2)
-                        ncArr[(cordLast%1000)/100-1][cordLast%100-1].setImageBitmap(wBitmap);
-
-                    if (board.getBScore() > board.getWScore())
-                        status.setText(R.string.victory_black);
-                    else if (board.getBScore() < board.getWScore())
-                        status.setText(R.string.victory_white);
-                    else
-                        status.setText(R.string.draw);
-                    btnOk.setOnClickListener(this);
-                    for (int i = 0; i < n; i++)
-                        for (int j = 0; j < n; j++)
-                            ncArr[i][j].setEnabled(false);
-                }
-                else {
-                    Intent intent = new Intent(this, MainActivity.class);
-                    startActivity(intent);
-                }
+                btnOk();
                 break;
 
             case R.id.btnCancel:
-                //dialog.dismiss();
                 if (endGame)
                     dismissDialog(DIALOG_END);
                 else
                     dismissDialog(DIALOG_EXIT);
-                break;
-
-            case R.id.pass:
-                if(pass.getText() == getResources().getString(R.string.btn_pass)) {
-                    /*if (cord != 0) {
-                        intArr[cord / 100][cord % 100] = 0;
-                        if (intArrTerritory[cord / 100][cord % 100] == 0)
-                            ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(none);
-                        else if (intArrTerritory[cord / 100][cord % 100] == 1)
-                            ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(bDot);
-                        else
-                            ncArr[cord / 100 - 1][cord % 100 - 1].setImageBitmap(wDot);
-                    }
-                    cord = 0;*/
-                    if (cord>0)
-                        ncArr[cord/100-1][cord%100-1].setImageBitmap(none);
-                    cord = 0;
-                    board.pass();
-                    pass.setText(getResources().getString(R.string.btn_end));
-                    passCheck = false;
-                    if (m == true) {
-                        m = false;
-                        status.setText(R.string.move_black);
-                    } else {
-                        m = true;
-                        status.setText(R.string.move_white);
-                    }
-                }
-                else if(pass.getText() == getResources().getString(R.string.btn_end)){
-                    endGame = true;
-                    showDialog(DIALOG_END);
-                }
-                else{
-                    board.newGame();
-                    status.setText(R.string.move_black);
-                    cordLast = 0;
-                    m = false;
-                    textBlack.setText(getResources().getString(R.string.score_black) + " 0");
-                    if (komi == 0)
-                        textWhite.setText(getResources().getString(R.string.score_white) +  " 0");
-                    else
-                        textWhite.setText(getResources().getString(R.string.score_white) +  " " + komi);
-                    for (int i=1; i < n+1; i++){
-                        for (int j=1; j < n+1; j++) {
-                            ncArr[i - 1][j - 1].setImageBitmap(none);
-                            ncArr[i - 1][j - 1].setEnabled(true);
-                        }
-                    }
-                }
                 break;
             case R.id.menu:
                 endGame = false;
@@ -617,18 +515,97 @@ public class Game extends Activity implements View.OnClickListener {
                 break;
         }
 
-        /*int[][] intArr = board.getBoard();
-        for (int i = 0; i < n; i++){
-            for (int j = 0; j < n; j++){
-                if (intArr[i][j]/10000000 == 1)
-                    ncArr[i][j].setImageBitmap(bBitmap);
-                else if (intArr[i][j]/10000000 == 2)
-                    ncArr[i][j].setImageBitmap(wBitmap);
-                else
-                    ncArr[i][j].setImageBitmap(none);
-            }
-        }*/
+    }
 
+    public void btnOk(){
+        if (endGame){
+            if (!(bot && botColor == m || testBot)) {
+                System.out.println("bot = "+bot+"; botColor = "+botColor+"; m = "+m+"testBot = "+testBot);
+                dismissDialog(DIALOG_END);
+            }
+            pass.setText(getResources().getString(R.string.btn_new));
+            board.scoring();
+            if (cordLast/10000 == 1 && intArrTerritory[(cordLast%10000)/100][cordLast%100] != 2)
+                ncArr[(cordLast%10000)/100-1][cordLast%100-1].setImageBitmap(bBitmap);
+            else if (cordLast/10000 == 1 && intArrTerritory[(cordLast%10000)/100][cordLast%100] == 2)
+                ncArr[(cordLast%10000)/100-1][cordLast%100-1].setImageBitmap(wDotOnB);
+            else if (cordLast/10000 == 2 && intArrTerritory[(cordLast%10000)/100][cordLast%100] != 1)
+                ncArr[(cordLast%10000)/100-1][cordLast%100-1].setImageBitmap(wBitmap);
+            else if (cordLast/10000 == 2 && intArrTerritory[(cordLast%10000)/100][cordLast%100] == 1)
+                ncArr[(cordLast%10000)/100-1][cordLast%100-1].setImageBitmap(bDotOnW);
+
+            if (board.bTotalScore > board.wTotalScore+komi)
+                status.setText(R.string.victory_black);
+            else if (board.bTotalScore < board.wTotalScore+komi)
+                status.setText(R.string.victory_white);
+            else
+                status.setText(R.string.draw);
+            if (!(bot && botColor == m || testBot))
+                btnOk.setOnClickListener(this);
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n; j++)
+                    ncArr[i][j].setEnabled(false);
+        }
+        else {
+            Intent intent = new Intent(this, MainActivity.class);
+            startActivity(intent);
+        }
+    }
+
+    public void pass(){
+        if(pass.getText() == getResources().getString(R.string.btn_pass)) {
+            if (cord>0 && intArrTerritory[cord/100][cord%100] == 0)
+                ncArr[cord/100-1][cord%100-1].setImageBitmap(none);
+            else if (cord>0 && intArrTerritory[cord/100][cord%100] == 1)
+                ncArr[cord/100-1][cord%100-1].setImageBitmap(bDot);
+            else if (cord>0 && intArrTerritory[cord/100][cord%100] == 2)
+                ncArr[cord/100-1][cord%100-1].setImageBitmap(wDot);
+            cord = 0;
+            board.pass();
+            pass.setText(getResources().getString(R.string.btn_end));
+            passCheck = false;
+            if (m == true) {
+                m = false;
+                status.setText(R.string.move_black);
+            } else {
+                m = true;
+                status.setText(R.string.move_white);
+            }
+
+        }
+        else if(pass.getText() == getResources().getString(R.string.btn_end)){
+            board.pass();
+            endGame = true;
+            if (bot && botColor == m || testBot)
+                btnOk();
+            else {
+                showDialog(DIALOG_END);
+            }
+        }
+        else{
+            kolvoHodov = 0;
+            board.newGame();
+            status.setText(R.string.move_black);
+            endGame = false;
+            cordLast = 0;
+            m = false;
+            textBlack.setText(getResources().getString(R.string.score_black) + " 0");
+            if (komi == 0)
+                textWhite.setText(getResources().getString(R.string.score_white) +  " 0");
+            else
+                textWhite.setText(getResources().getString(R.string.score_white) +  " " + komi);
+            for (int i=1; i < n+1; i++){
+                for (int j=1; j < n+1; j++) {
+                    ncArr[i - 1][j - 1].setImageBitmap(none);
+                    ncArr[i - 1][j - 1].setEnabled(true);
+                }
+            }
+        }
+        if (bot && botColor == m && !endGame || testBot && !endGame)
+            new botThread().start();
+        else
+            System.out.println("bot = "+bot+"; botColor = "+botColor+"; m = "+m+"; endGame = "+endGame);
+        //endGame = false;
     }
 
     @Override
@@ -661,680 +638,5 @@ public class Game extends Activity implements View.OnClickListener {
         }
         return super.onCreateDialog(id);
     }
-
-    //Формат номера элемента на доске - X X XXX XXX :
-    // цвет;
-    // наличие или отсутствие территории у группы;
-    // номер группы, окружайщей территорию;
-    // номер объединенной группы;
-    /*public void move(int i, int j) {
-        if (intArr[i][j] == 0 || Cord/100 == i && Cord%100 == j) {
-            if (!m) {
-                if (Cord/100 != i || Cord%100 != j){
-                    if (Cord != 0) {
-                        if (intArrTerritory[Cord / 100][Cord % 100] == 0)
-                            ncArr[Cord / 100 - 1][Cord % 100 - 1].setImageBitmap(none);
-                        else if (intArrTerritory[Cord / 100][Cord % 100] == 1)
-                            ncArr[Cord / 100 - 1][Cord % 100 - 1].setImageBitmap(bDot);
-                        else
-                            ncArr[Cord / 100 - 1][Cord % 100 - 1].setImageBitmap(wDot);
-                        intArr[Cord / 100][Cord % 100] = 0;
-                    }
-                    ncArr[i - 1][j - 1].setImageBitmap(bpBitmap);
-                    Cord = i*100+j;
-                }
-                else {
-                    //sp.play(soundIdClick, 1, 1, 0, 0, 1);
-                    Cord = 0;
-                    ncArr[i - 1][j - 1].setImageBitmap(bBitmap);
-                    m = true;
-                    status.setText(R.string.move_white);
-                    pass.setText(getResources().getString(R.string.btn_pass));
-                    passCheck = true;
-                    move = true;
-                }
-                intArr[i][j] = 10000000;
-            } else if (m) {
-                if (Cord/100 != i || Cord%100 != j){
-                    if (Cord != 0) {
-                        if (intArrTerritory[Cord / 100][Cord % 100] == 0)
-                            ncArr[Cord / 100 - 1][Cord % 100 - 1].setImageBitmap(none);
-                        else if (intArrTerritory[Cord / 100][Cord % 100] == 1)
-                            ncArr[Cord / 100 - 1][Cord % 100 - 1].setImageBitmap(bDot);
-                        else
-                            ncArr[Cord / 100 - 1][Cord % 100 - 1].setImageBitmap(wDot);
-                        intArr[Cord / 100][Cord % 100] = 0;
-                    }
-                    ncArr[i - 1][j - 1].setImageBitmap(wpBitmap);
-                    Cord = i*100+j;
-                }
-                else {
-                    //sp.play(soundIdClick, 1, 1, 0, 0, 1);
-                    move = true;
-                    Cord = 0;
-                    ncArr[i - 1][j - 1].setImageBitmap(wBitmap);
-                    m = false;
-                    status.setText(R.string.move_black);
-                    pass.setText(getResources().getString(R.string.btn_pass));
-                    passCheck = true;
-                }
-                intArr[i][j] = 20000000;
-            }
-
-            int checkRuleKo = ruleKo[1];
-            zone++;
-            zone2++;
-
-            intArr[i][j] += zone + zone2*1000;
-            //Проверки на стоящие рядом камни противника
-            checkMove(i - 1, j, i, j);
-            checkMove(i, j + 1, i, j);
-            checkMove(i + 1, j, i, j);
-            checkMove(i, j - 1, i, j);
-            //Проверки на стоящие рядом камни того же цвета
-            checkMove2(i - 1, j, i, j);
-            checkMove2(i, j + 1, i, j);
-            checkMove2(i + 1, j, i, j);
-            checkMove2(i, j - 1, i, j);
-
-            if (checkRuleKo == ruleKo[1] && !move && ((ruleKo[1]%100000000)/1000000 != i || (ruleKo[1]%1000000)/10000 != j || ruleKo[1]/100000000 != intArr[i][j]/10000000))
-                ruleKo[1] = 0;
-
-            if (move) {
-                if (intArr[i + 1][j + 1] / 10000000 == intArr[i][j] / 10000000 && intArr[i][j] != 0 && intArr[i + 1][j + 1] != 0) {
-                    oldzone2 = (intArr[i + 1][j + 1] % 1000000) / 1000;
-                    intArr[i][j] += oldzone2 * 1000 - zone2 * 1000;
-                    for (int i1 = 1; i1 < n + 1; i1++) {
-                        for (int j1 = 1; j1 < n + 1; j1++) {
-                            if ((intArr[i1][j1] % 1000000) / 1000 == oldzone2)
-                                intArr[i1][j1] += zone2 * 1000 - oldzone2 * 1000;
-                        }
-                    }
-                }
-                if (intArr[i + 1][j - 1] / 10000000 == intArr[i][j] / 10000000 && intArr[i][j] != 0 && intArr[i + 1][j - 1] != 0) {
-                    oldzone2 = (intArr[i + 1][j - 1] % 1000000) / 1000;
-                    intArr[i][j] += oldzone2 * 1000 - zone2 * 1000;
-                    for (int i1 = 1; i1 < n + 1; i1++) {
-                        for (int j1 = 1; j1 < n + 1; j1++) {
-                            if ((intArr[i1][j1] % 1000000) / 1000 == oldzone2)
-                                intArr[i1][j1] += zone2 * 1000 - oldzone2 * 1000;
-                        }
-                    }
-                }
-                if (intArr[i - 1][j + 1] / 10000000 == intArr[i][j] / 10000000 && intArr[i][j] != 0 && intArr[i - 1][j + 1] != 0) {
-                    oldzone2 = (intArr[i - 1][j + 1] % 1000000) / 1000;
-                    intArr[i][j] += oldzone2 * 1000 - zone2 * 1000;
-                    for (int i1 = 1; i1 < n + 1; i1++) {
-                        for (int j1 = 1; j1 < n + 1; j1++) {
-                            if ((intArr[i1][j1] % 1000000) / 1000 == oldzone2)
-                                intArr[i1][j1] += zone2 * 1000 - oldzone2 * 1000;
-                        }
-                    }
-                }
-                if (intArr[i - 1][j - 1] / 10000000 == intArr[i][j] / 10000000 && intArr[i][j] != 0 && intArr[i - 1][j - 1] != 0) {
-                    oldzone2 = (intArr[i - 1][j - 1] % 1000000) / 1000;
-                    intArr[i][j] += oldzone2 * 1000 - zone2 * 1000;
-                    for (int i1 = 1; i1 < n + 1; i1++) {
-                        for (int j1 = 1; j1 < n + 1; j1++) {
-                            if ((intArr[i1][j1] % 1000000) / 1000 == oldzone2)
-                                intArr[i1][j1] += zone2 * 1000 - oldzone2 * 1000;
-                        }
-                    }
-                }
-            }
-
-            //Если камень окружен с четырех сторон камнями противника или краем поля и правило Ко
-            if (intArr[i][j] != 0 && !checkMove &&
-                    (intArr[i+1][j]/10000000 != intArr[i][j]/10000000 && intArr[i+1][j] != 0) &&
-                    (intArr[i-1][j]/10000000 != intArr[i][j]/10000000 && intArr[i-1][j] != 0) &&
-                    (intArr[i][j+1]/10000000 != intArr[i][j]/10000000 && intArr[i][j+1] != 0) &&
-                    (intArr[i][j-1]/10000000 != intArr[i][j]/10000000 && intArr[i][j-1] != 0) ||
-                    ruleKo[0] / 100000000 != intArr[i][j]/10000000 && (ruleKo[0] % 100000000)/1000000 == (ruleKo[1] % 10000)/100 && (ruleKo[0] % 1000000)/10000 == ruleKo[1] % 100
-                            && (ruleKo[1] % 100000000)/1000000 == (ruleKo[0] % 10000)/100 && (ruleKo[1] % 1000000)/10000 == ruleKo[0] % 100 && ruleKo[0] != 0 && ruleKo[1] != 0){
-                intArr[i][j] = 0;
-                if (intArrTerritory[i][j] == 0)
-                    ncArr[i - 1][j - 1].setImageBitmap(none);
-                else if (intArrTerritory[i][j] == 1)
-                    ncArr[i - 1][j - 1].setImageBitmap(bDot);
-                else
-                    ncArr[i - 1][j - 1].setImageBitmap(wDot);
-                Cord = 0;
-            }
-
-            if(move) {
-                ruleKo[0] = ruleKo[1];
-                scoring();
-                for (int i1 = 1; i1 < n + 1; i1++) {
-                    for (int j1 = 1; j1 < n + 1; j1++) {
-                        if (intArr[i1][j1] != 0 && intArrTerritory[i1][j1] == 0) {
-                            if (intArr[i1][j1] / 10000000 == 1)
-                                ncArr[i1 - 1][j1 - 1].setImageBitmap(bBitmap);
-                            else
-                                ncArr[i1 - 1][j1 - 1].setImageBitmap(wBitmap);
-                        }
-                    }
-                }
-            }
-
-            if (m && move && intArrTerritory[i][j] != 2)
-                ncArr[i - 1][j - 1].setImageBitmap(bLast);
-            else if (m && move && intArrTerritory[i][j] == 2)
-                ncArr[i - 1][j - 1].setImageBitmap(wDotOnBLast);
-            else if (!m && move && intArrTerritory[i][j] != 1)
-                ncArr[i - 1][j - 1].setImageBitmap(wLast);
-            else if (!m && move && intArrTerritory[i][j] == 1)
-                ncArr[i - 1][j - 1].setImageBitmap(bDotOnWLast);
-
-            move = false;
-            checkMove = false;
-            checkMove2 = false;
-            for (int i1 = 1; i1 < n+1; i1++) {
-                Log.d(TAG, intArr[i1][1] + "\t" + intArr[i1][2] + "\t" + intArr[i1][3] + "\t" + intArr[i1][4] + "\t" + intArr[i1][5] + "\t" + intArr[i1][6] + "\t" + intArr[i1][7] + "\t" + intArr[i1][8] + "\t" + intArr[i1][9] + "\t" + "\n");
-            }
-            for (int i1 = 1; i1 < n+1; i1++) {
-                Log.d(TAG, intArrTerritory[i1][1] + "\t" + intArrTerritory[i1][2] + "\t" + intArrTerritory[i1][3] + "\t" + intArrTerritory[i1][4] + "\t" + intArrTerritory[i1][5] + "\t" + intArrTerritory[i1][6] + "\t" + intArrTerritory[i1][7] + "\t" + intArrTerritory[i1][8] + "\t" + intArrTerritory[i1][9] + "\t" + "\n");
-            }
-            Log.d(TAG, "wScore = "+wScore);
-
-            if(bot){
-                m = false;
-                //bot(intArr, 0);
-            }
-        }
-    }
-
-    //Функция, в случае стоящего рядом камня другого цвета
-    public void checkMove(int i, int j, int ii, int jj) {
-        boolean a=false;
-        byte rule = 0;
-        if (intArr[i][j] / 10000000 != intArr[ii][jj] / 10000000 && intArr[i][j] / 10000000 != 0) {
-
-            oldzone = intArr[i][j] % 1000;
-            for (int i1 = 1; i1 < n+1; i1++) {
-                for (int j1 = 1; j1 < n+1; j1++) {
-                    if (intArr[i1][j1] % 1000 == oldzone){
-                        if (intArr[i1+1][j1] == 0 || intArr[i1-1][j1] == 0 || intArr[i1][j1+1] == 0 || intArr[i1][j1-1] == 0){
-                            a = true;
-                            break;
-                        }
-                    }
-                }
-                if (a)
-                    break;
-            }
-            if (!a && move) {
-                if (intArr[ii][jj] / 10000000 == 1) {
-                    for (int i1 = 1; i1 < n+1; i1++) {
-                        for (int j1 = 1; j1 < n+1; j1++) {
-                            if (intArr[i1][j1] % 1000 == oldzone) {
-                                intArr[i1][j1] = 0;
-                                ncArr[i1 - 1][j1 - 1].setImageBitmap(none);
-                                bScore++;
-                            }
-                        }
-                    }
-                } else {
-                    for (int i1 = 1; i1 < n+1; i1++) {
-                        for (int j1 = 1; j1 < n+1; j1++) {
-                            if (intArr[i1][j1] % 1000 == oldzone) {
-                                intArr[i1][j1] = 0;
-                                ncArr[i1 - 1][j1 - 1].setImageBitmap(none);
-                                wScore++;
-                            }
-                        }
-                    }
-                }
-                a = false;
-            }
-            else if (!a && !move) {
-                checkMove = true;
-                for (int i1 = 1; i1 < n+1; i1++) {
-                    for (int j1 = 1; j1 < n+1; j1++) {
-                        if (intArr[i1][j1] % 1000 == oldzone)
-                            rule++;
-                    }
-                }
-                if (rule == 1)
-                    ruleKo[1] = (intArr[ii][jj] / 10000000) * 100000000 + ii * 1000000 + jj * 10000 + i * 100 + j;
-            }
-        }
-    }
-
-    //Функция, в случае стоящего рядом камня того же цвета
-    public void checkMove2(int i, int j, int ii, int jj) {
-        boolean a=false;
-        if (intArr[i][j] / 10000000 == intArr[ii][jj] / 10000000 && intArr[i][j] != -1) {
-            oldzone = intArr[i][j] % 1000;
-            oldzone2 = (intArr[i][j]%1000000)/1000;
-            intArr[ii][jj] += oldzone - zone + oldzone2*1000 - zone2*1000;
-            for (int i1 = 1; i1 < n+1; i1++) {
-                for (int j1 = 1; j1 < n+1; j1++) {
-                    if (intArr[i1][j1] % 1000 == oldzone || intArr[i1][j1] % 1000 == zone) {
-                        if (intArr[i1+1][j1] == 0 || intArr[i1-1][j1] == 0 || intArr[i1][j1+1] == 0 || intArr[i1][j1-1] == 0) {
-                            a = true;
-                            checkMove2 = true;
-                            break;
-                        }
-                    }
-                }
-                if(a) break;
-            }
-            if ( !a && !checkMove && !checkMove2 && (i == ii - 1 && intArr[ii][jj+1] / 10000000 != intArr[ii][jj] / 10000000
-                    && intArr[ii+1][jj] / 10000000 != intArr[ii][jj] / 10000000
-                    && intArr[ii][jj-1] / 10000000 != intArr[ii][jj] / 10000000
-                    || j == jj + 1 && intArr[ii+1][jj] / 10000000 != intArr[ii][jj] / 10000000
-                    && intArr[ii][jj-1] / 10000000 != intArr[ii][jj] / 10000000
-                    || i == ii + 1 && intArr[ii][jj-1] / 10000000 != intArr[ii][jj] / 10000000
-                    || j == jj - 1)){
-                intArr[ii][jj] = 0;
-                Cord = 0;
-                if (intArrTerritory[ii][jj] == 0)
-                    ncArr[ii - 1][jj - 1].setImageBitmap(none);
-                else if (intArrTerritory[ii][jj] == 1)
-                    ncArr[ii - 1][jj - 1].setImageBitmap(bDot);
-                else
-                    ncArr[ii - 1][jj - 1].setImageBitmap(wDot);
-            }
-            else if (move){
-                if ((intArr[i][j]%10000000)/1000000 == 1 && (intArr[ii][jj]%10000000)/1000000 != 1)
-                    intArr[ii][jj] += 1000000;
-                for (int i1 = 1; i1 < n + 1; i1++) {
-                    for (int j1 = 1; j1 < n + 1; j1++) {
-                        if (intArr[i1][j1] % 1000 == oldzone)
-                            intArr[i1][j1] += zone - oldzone;
-                        if ((intArr[i1][j1] % 1000000) / 1000 == oldzone2 && intArr[i1][j1] != 0)
-                            intArr[i1][j1] += zone2 * 1000 - oldzone2 * 1000;
-                    }
-                }
-            }
-            else if (!move)
-                intArr[ii][jj] += zone - oldzone + zone2*1000 - oldzone2*1000;
-        }
-    }*/
-
-    //Подсчет очков и территорий
-    /*public void scoring(){
-        int[][] intArr1 = new int[n+2][n+2];
-        int[][] intArr2 = new int[n+2][n+2];
-        int wStrategicScore = 0, bStrategicScore = 0;
-
-        for (int i = 0; i < n+2; i++){
-            for (int j = 0; j < n+2; j++){
-                intArr1[i][j] = intArr[i][j];
-                if (i==0 || j==0 || i==n+1 || j==n+1) {
-                    intArr2[i][j] = -1;
-                    intArrTerritory[i][j] = -1;
-                }
-                else {
-                    intArr2[i][j] = 0;
-                    intArrTerritory[i][j] = 0;
-                }
-            }
-        }
-
-        for (int i = 1; i < n+1; i++){
-            for (int j = 1; j < n+1; j++) {
-                if ((intArr1[i][j] % 1000000) / 1000 > 0){
-                    oldzone2 = (intArr1[i][j] % 1000000) / 1000;
-                    oldzone = 0;
-
-                    //Анализ территорий
-                    for (int i1=1; i1 < n+1; i1++){
-                        for (int j1=1; j1 < n+1; j1++){
-                            if ((intArr1[i1][j1]%1000000)/1000 == oldzone2){
-                                for (int j2=j1+1; j2 < n+1; j2++) {
-                                    if ((intArr1[i1][j2] % 1000000)/1000 != oldzone2 ) {
-                                        intArr2[i1][j2]++;
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                    }
-
-                    for (int j1=1; j1 < n+1; j1++){
-                        for (int i1=1; i1 < n+1; i1++) {
-                            if ((intArr1[i1][j1]%1000000)/1000 == oldzone2){
-                                for (int i2=i1+1; i2 < n+1; i2++) {
-                                    if ((intArr1[i2][j1] % 1000000)/1000 != oldzone2) {
-                                        intArr2[i2][j1]++;
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                    }
-
-                    for (int i1=1; i1 < n+1; i1++){
-                        for (int j1=n; j1 > 0; j1--){
-                            if ((intArr1[i1][j1]%1000000)/1000 == oldzone2){
-                                for (int j2=j1-1; j2 > 0; j2--) {
-                                    if ((intArr1[i1][j2] % 1000000)/1000 != oldzone2 ) {
-                                        intArr2[i1][j2]++;
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                    }
-
-                    for (int j1=1; j1 < n+1; j1++){
-                        for (int i1=n; i1 > 0; i1--){
-                            if ((intArr1[i1][j1]%1000000)/1000 == oldzone2){
-                                for (int i2=i1-1; i2 > 0; i2--){
-                                    if ((intArr1[i2][j1] % 1000000)/1000 != oldzone2) {
-                                        intArr2[i2][j1]++;
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                    }
-                    //
-
-                    //Наличие территории из трех стен
-                    for (int i1 = 1; i1 < n+1; i1++){
-                        for (int j1 = 1; j1 < n+1; j1++){
-                            if ((i1 == 1 || i1 == n || j1 == 1 || j1 == n) && intArr2[i1][j1] == 3){
-                                for (int i2 = 1; i2 < n+1; i2++){
-                                    for (int j2 = 1; j2 < n+1; j2++){
-                                        if (intArr2[i2][j2] == 3)
-                                            intArr2[i2][j2] = 4;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    //
-
-                    //Наличие территории из двух стен
-
-                    if (intArr2[1][1]==2 || intArr2[1][n]==2 || intArr2[n][n]==2 || intArr2[n][1]==2){
-                        for (int i1=1; i1 < n+1; i1++){
-                            for (int j1 = 1; j1 < n+1; j1++) {
-                                if (intArr2[i1][j1] >= 2) {
-                                    intArr2[i1][j1] = 4;
-                                }
-                            }
-                        }
-                    }
-                    //
-
-                    //Наличие территории из одной стены
-                    boolean oneWall = false;
-                    i1: for (int i1 = 1; i1 < n+1; i1++){
-                        if ((intArr1[i1][1]%1000000)/1000 == oldzone2) {
-                            for (int i2 = 1; i2 < n+1; i2++){
-                                if ((intArr1[i2][n]%1000000)/1000 == oldzone2) {
-                                    oneWall = true;
-                                    break i1;
-                                }
-                            }
-                        }
-                    }
-
-                    j1: for (int j1 = 1; j1 < n+1; j1++){
-                        if ((intArr1[1][j1]%1000000)/1000 == oldzone2) {
-                            for (int j2 = 1; j2 < n+1; j2++){
-                                if ((intArr1[n][j2]%1000000)/1000 == oldzone2) {
-                                    oneWall = true;
-                                    break j1;
-                                }
-                            }
-                        }
-                    }
-
-                    if (oneWall){
-                        for (int i1 = 1; i1 < n+1; i1++){
-                            for (int j1 = 1; j1 < n+1; j1++){
-                                if (intArr2[i1][j1] >= 1)
-                                    intArr2[i1][j1] = 4;
-                            }
-                        }
-                    }
-
-                    // Устранение фиктивных территорий
-
-                    for (int k = 0; k < 5; k++) {
-                        for (int i1 = 1; i1 < n+1; i1++) {
-                            for (int j1 = 1; j1 < n+1; j1++) {
-                                if (intArr2[i1][j1] == 4 && intArr2[i1][j1 - 1] > 0 && intArr2[i1][j1 - 1] < 4) {
-                                    intArr2[i1][j1] = 1;
-                                }
-                            }
-                        }
-
-                        for (int j1 = 1; j1 < n+1; j1++) {
-                            for (int i1 = 1; i1 < n+1; i1++) {
-                                if (intArr2[i1][j1] == 4 && intArr2[i1 - 1][j1] > 0 && intArr2[i1 - 1][j1] < 4) {
-                                    intArr2[i1][j1] = 1;
-                                }
-                            }
-                        }
-
-                        for (int i1 = 1; i1 < n+1; i1++) {
-                            for (int j1 = n; j1 > 0; j1--) {
-                                if (intArr2[i1][j1] == 4 && intArr2[i1][j1+1] > 0 && intArr2[i1][j1+1] < 4) {
-                                    intArr2[i1][j1] = 1;
-                                }
-                            }
-                        }
-
-                        for (int j1 = 1; j1 < n+1; j1++) {
-                            for (int i1 = n; i1 > 0; i1--) {
-                                if (intArr2[i1][j1] == 4 && intArr2[i1 + 1][j1] > 0 && intArr2[i1 + 1][j1] < 4) {
-                                    intArr2[i1][j1] = 1;
-                                }
-                            }
-                        }
-                    }
-
-                    i1 : for (int i1 = 1; i1 < n + 1; i1++) {
-                        for (int j1 = 1; j1 < n + 1; j1++) {
-                            if (intArr2[i1][j1] == 4) {
-                                for (int i2 = 1; i2 < n + 1; i2++) {
-                                    for (int j2 = 1; j2 < n + 1; j2++) {
-                                        if ((intArr1[i2][j2] % 1000000) / 1000 == oldzone2)
-                                            intArr1[i2][j2] += 1000000;
-                                    }
-                                }
-                                break i1;
-                            }
-                        }
-                    }
-
-                    //Проверка являются ли территория смешанной
-
-                    boolean mix = false;
-
-                    for (int i1 = 1; i1 < n+1; i1++) {
-                        for (int j1 = 1; j1 < n+1; j1++) {
-                            if (intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000 && (intArr1[i1][j1]%10000000)/1000000 == 1 &&
-                                    (i1 == 1 || j1 == 1 || i1 == n || j1 == n)) {
-                                for (int i2 = 1; i2 < n+1; i2++) {
-                                    for (int j2 = 1; j2 < n+1; j2++) {
-                                        if ((intArr1[i2][j2]%1000000)/1000 == oldzone2 && intArrTerritory[i2][j2] != intArr1[i2][j2]/10000000 && intArrTerritory[i2][j2] > 0 &&
-                                                (i2 == 1 || j2 == 1 || i2 == n || j2 == n)) {
-                                            intArr2[i1][j1] = 1;
-                                            intArrTerritory[i2][j2] = 0;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    /////
-                    for (int i1 = 1; i1 < n+1; i1++) {
-                        Log.d(TAG, "Перед первой: "+intArr2[i1][1] + "\t" + intArr2[i1][2] + "\t" + intArr2[i1][3] + "\t" + intArr2[i1][4] + "\t" + intArr2[i1][5] + "\t" + intArr2[i1][6] + "\t" + intArr2[i1][7] + "\t" + intArr2[i1][8] + "\t" + intArr2[i1][9] + "\t" + "\n\n");
-                    }
-                    Log.d(TAG, "///");
-
-                    oldzone2 = (intArr1[i][j]%1000000)/1000;
-                    for (int k = 0; k < 5; k++) {
-                        for (int i1 = 1; i1 < n+1; i1++) {
-                            for (int j1 = 1; j1 < n+1; j1++) {
-                                if (intArr2[i1][j1] == 4 && intArr2[i1][j1 - 1] > 0 && intArr2[i1][j1 - 1] < 4 && ((intArr1[i1][j1]%10000000)/1000000 != 1 ||
-                                        intArr1[i1][j1]/10000000 != 0 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000) ||
-                                        (intArr1[i1][j1]%10000000)/1000000 >= 1 && intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000  &&
-                                                (i1 == 1 || j1 == 1 || i1 == n || j1 == n)) {
-                                    intArr2[i1][j1] = 1;
-                                }
-                            }
-                        }
-
-                        for (int j1 = 1; j1 < n+1; j1++) {
-                            for (int i1 = 1; i1 < n+1; i1++) {
-                                if (intArr2[i1][j1] == 4 && intArr2[i1 - 1][j1] > 0 && intArr2[i1 - 1][j1] < 4 && ((intArr1[i1][j1]%10000000)/1000000 != 1 ||
-                                        intArr1[i1][j1]/10000000 != 0 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000) ||
-                                        (intArr1[i1][j1]%10000000)/1000000 >= 1  && intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000  &&
-                                                (i1 == 1 || j1 == 1 || i1 == n || j1 == n)) {
-                                    intArr2[i1][j1] = 1;
-                                }
-                            }
-                        }
-
-                        for (int i1 = 1; i1 < n+1; i1++) {
-                            for (int j1 = n; j1 > 0; j1--) {
-                                if (intArr2[i1][j1] == 4 && intArr2[i1][j1+1] > 0 && intArr2[i1][j1+1] < 4 && ((intArr1[i1][j1]%10000000)/1000000 != 1 ||
-                                        intArr1[i1][j1]/10000000 != 0 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000) ||
-                                        (intArr1[i1][j1]%10000000)/1000000 >= 1 && intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000  &&
-                                                (i1 == 1 || j1 == 1 || i1 == n || j1 == n)) {
-                                    intArr2[i1][j1] = 1;
-                                }
-                            }
-                        }
-
-                        for (int j1 = 1; j1 < n+1; j1++) {
-                            for (int i1 = n; i1 > 0; i1--) {
-                                if (intArr2[i1][j1] == 4 && intArr2[i1 + 1][j1] > 0 && intArr2[i1 + 1][j1] < 4 && ((intArr1[i1][j1]%10000000)/1000000 != 1 ||
-                                        intArr1[i1][j1]/10000000 != 0 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000) ||
-                                        (intArr1[i1][j1]%10000000)/1000000 >= 1 && intArr2[i1][j1] == 4 && intArr1[i1][j1]/10000000 != intArr1[i][j]/10000000  &&
-                                                (i1 == 1 || j1 == 1 || i1 == n || j1 == n)) {
-                                    intArr2[i1][j1] = 1;
-                                }
-                            }
-                        }
-                    }
-
-                    for (int i1 = 1; i1 < n+1; i1++) {
-                        Log.d(TAG, "После первой: "+intArr2[i1][1] + "\t" + intArr2[i1][2] + "\t" + intArr2[i1][3] + "\t" + intArr2[i1][4] + "\t" + intArr2[i1][5] + "\t" + intArr2[i1][6] + "\t" + intArr2[i1][7] + "\t" + intArr2[i1][8] + "\t" + intArr2[i1][9] + "\t" + "\n\n");
-                    }
-                    Log.d(TAG, "///");
-
-                    for (int k = 0; k < 5; k++) {
-                        for (int i1 = 1; i1 < n+1; i1++) {
-                            for (int j1 = 1; j1 < n+1; j1++) {
-                                if (intArr2[i1][j1 - 1] == 4 && intArr1[i1][j1 - 1]/10000000 != intArrTerritory[i1][j1] && intArrTerritory[i1][j1] > 0 ||
-                                        intArrTerritory[i1][j1 - 1] == 0 && intArr1[i1][j1 - 1]/10000000 != intArrTerritory[i1][j1] ) {
-                                    intArrTerritory[i1][j1] = 0;
-                                }
-                            }
-                        }
-
-                        for (int j1 = 1; j1 < n+1; j1++) {
-                            for (int i1 = 1; i1 < n+1; i1++) {
-                                if (intArr2[i1 - 1][j1] == 4 && intArr1[i1 - 1][j1]/10000000 != intArrTerritory[i1][j1] && intArrTerritory[i1][j1] > 0 ||
-                                        intArrTerritory[i1 - 1][j1] == 0 && intArr1[i1 - 1][j1]/10000000 != intArrTerritory[i1][j1]) {
-                                    intArrTerritory[i1][j1] = 0;
-                                }
-                            }
-                        }
-
-                        for (int i1 = 1; i1 < n+1; i1++) {
-                            for (int j1 = n; j1 > 0; j1--) {
-                                if (intArr2[i1][j1 + 1] == 4 && intArr1[i1][j1 + 1]/10000000 != intArrTerritory[i1][j1] && intArrTerritory[i1][j1] > 0 ||
-                                        intArrTerritory[i1][j1 + 1] == 0 && intArr1[i1][j1 + 1]/10000000 != intArrTerritory[i1][j1]) {
-                                    intArrTerritory[i1][j1] = 0;
-                                }
-                            }
-                        }
-
-                        for (int j1 = 1; j1 < n+1; j1++) {
-                            for (int i1 = n; i1 > 0; i1--) {
-                                if (intArr2[i1 + 1][j1] == 4 && intArr1[i1 + 1][j1]/10000000 != intArrTerritory[i1][j1] && intArrTerritory[i1][j1] > 0 ||
-                                        intArrTerritory[i1 + 1][j1] == 0 && intArr1[i1 + 1][j1]/10000000 != intArrTerritory[i1][j1]) {
-                                    intArrTerritory[i1][j1] = 0;
-                                }
-                            }
-                        }
-                    }
-                    ///
-
-                    for (int i1 = 1; i1 < n+1; i1++) {
-                        Log.d(TAG, "После второй: "+intArrTerritory[i1][1] + "\t" + intArrTerritory[i1][2] + "\t" + intArrTerritory[i1][3] + "\t" + intArrTerritory[i1][4] + "\t" + intArrTerritory[i1][5] + "\t" + intArrTerritory[i1][6] + "\t" + intArrTerritory[i1][7] + "\t" + intArrTerritory[i1][8] + "\t" + intArrTerritory[i1][9] + "\t" + "\n\n");
-                    }
-                    Log.d(TAG, "///");
-                    //Распределение получившихся территорий
-                    for (int i1 = 1; i1 < n + 1; i1++) {
-                        for (int j1 = 1; j1 < n + 1; j1++) {
-                            if (intArr2[i1][j1] == 4)
-                                intArrTerritory[i1][j1] = intArr1[i][j] / 10000000;
-                            if ((intArr1[i1][j1]%10000000)/1000000==1 && intArr2[i1][j1]==4)
-                                intArr1[i1][j1] -= 1000000;
-                        }
-                    }
-                    ////
-
-                    for (int i1=1; i1 < n+1; i1++){
-                        for (int j1=1; j1 < n+1; j1++) {
-                            intArr2[i1][j1] = 0;
-                        }
-                    }
-
-                    for (int i1=1; i1 < n+1; i1++){
-                        for (int j1=1; j1 < n+1; j1++) {
-                            if ((intArr1[i1][j1]%1000000)/1000 == oldzone2) {
-                                intArr1[i1][j1] -= oldzone2*1000;
-                            }
-                        }
-                    }
-
-                }
-            }
-        }
-        // Присвоение очков //
-        for (int i1=1; i1 < n+1; i1++){
-            for (int j1=1; j1 < n+1; j1++) {
-                if (intArrTerritory[i1][j1] == 1) {
-                    if (intArr1[i1][j1]==0)
-                        ncArr[i1 - 1][j1 - 1].setImageBitmap(bDot);
-                    else if (intArr1[i1][j1]/10000000==2)
-                        ncArr[i1 - 1][j1 - 1].setImageBitmap(bDotOnW);
-                    else if (intArr1[i1][j1]/10000000==1)
-                        ncArr[i1 - 1][j1 - 1].setImageBitmap(bBitmap);
-                    //Добавление очков черным
-                    if (intArr1[i1][j1]==0)
-                        bStrategicScore++;
-                    else if (intArr1[i1][j1]/10000000==2)
-                        bStrategicScore += 2;
-                }
-                else if (intArrTerritory[i1][j1] == 2) {
-                    if (intArr1[i1][j1]==0)
-                        ncArr[i1 - 1][j1 - 1].setImageBitmap(wDot);
-                    else if (intArr1[i1][j1]/10000000==1)
-                        ncArr[i1 - 1][j1 - 1].setImageBitmap(wDotOnB);
-                    else if (intArr1[i1][j1]/10000000==2)
-                        ncArr[i1 - 1][j1 - 1].setImageBitmap(wBitmap);
-                    //Добавление очков белым
-                    if (intArr1[i1][j1]==0)
-                        wStrategicScore++;
-                    else if (intArr1[i1][j1]/10000000==1)
-                        wStrategicScore += 2;
-                }
-                else if (intArr[i1][j1]/10000000 == 0){
-                    ncArr[i1 - 1][j1 - 1].setImageBitmap(none);
-                }
-            }
-        }
-
-        wTotalScore = wScore+wStrategicScore;
-        bTotalScore = bScore+bStrategicScore;
-        if (komi != 0)
-            textWhite.setText(getResources().getString(R.string.score_white) + " " + (wTotalScore+komi));
-        else
-            textWhite.setText(getResources().getString(R.string.score_white) + " " + wTotalScore);
-        textBlack.setText(getResources().getString(R.string.score_black) + " " +bTotalScore);
-
-    }*/
 
 }
