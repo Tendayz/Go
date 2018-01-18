@@ -53,7 +53,6 @@ public class Game extends Activity implements View.OnClickListener {
         komi = intent.getFloatExtra("wScore", 0);
         Log.d(TAG, "komi="+komi);
         Log.d(TAG, "n="+n);
-        komi=0.5f;
 
         if (n==9)
             setContentView(R.layout.activity_game);
@@ -165,12 +164,16 @@ public class Game extends Activity implements View.OnClickListener {
                 for (int j1 = 1; j1 < n+1; j1++) {
                     if (intArrTerritory[i1][j1] == 1 && intArr[i1][j1] == 0)
                         ncArr[i1-1][j1-1].setImageBitmap(bDot);
-                    else if (intArrTerritory[i1][j1] == 1 && intArr[i1][j1]/10000000 == 2)
+                    else if (20000 + i1 * 100 + j1 != cordLast && intArrTerritory[i1][j1] == 1 && intArr[i1][j1]/10000000 == 2)
                         ncArr[i1-1][j1-1].setImageBitmap(bDotOnW);
+                    else if (20000 + i1 * 100 + j1 == cordLast && intArrTerritory[i1][j1] == 1 && intArr[i1][j1]/10000000 == 2)
+                        ncArr[i1-1][j1-1].setImageBitmap(bDotOnWLast);
                     else if (intArrTerritory[i1][j1] == 2 && intArr[i1][j1] == 0)
                         ncArr[i1-1][j1-1].setImageBitmap(wDot);
-                    else if (intArrTerritory[i1][j1] == 2 && intArr[i1][j1]/10000000 == 1)
+                    else if (10000 + i1 * 100 + j1 != cordLast && intArrTerritory[i1][j1] == 2 && intArr[i1][j1]/10000000 == 1)
                         ncArr[i1-1][j1-1].setImageBitmap(wDotOnB);
+                    else if (10000 + i1 * 100 + j1 == cordLast && intArrTerritory[i1][j1] == 2 && intArr[i1][j1]/10000000 == 1)
+                        ncArr[i1-1][j1-1].setImageBitmap(wDotOnBLast);
                     else if (10000 + i1 * 100 + j1 != cordLast && intArr[i1][j1]/10000000 == 1)
                         ncArr[i1-1][j1-1].setImageBitmap(bBitmap);
                     else if (20000 + i1 * 100 + j1 != cordLast && intArr[i1][j1]/10000000 == 2)
@@ -449,11 +452,10 @@ public class Game extends Activity implements View.OnClickListener {
 
         }
         else if(pass.getText() == getResources().getString(R.string.btn_end)){
-            board.pass();
+            endGame = true;
             showDialog(DIALOG_END);
         }
         else{
-            kolvoHodov = 0;
             board.newGame();
             status.setText(R.string.move_black);
             endGame = false;

@@ -7,8 +7,8 @@ android {
         applicationId "com.tenday.go"
         minSdkVersion 15
         targetSdkVersion 25
-        versionCode 8
-        versionName "1.1"
+        versionCode 12
+        versionName "1.2.2"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
